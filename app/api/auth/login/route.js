@@ -3,7 +3,7 @@ import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate } from '../../../../lib/security/validation.js';
-import { createSessionCookie } from '../../../../lib/auth/session.js';
+import { createSessionCookie, rotateSession } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
     try {
@@ -56,7 +56,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid username, account number, or password!' }, { status: 401 });
         }
 
-        // Create session cookie
+        // Create/rotate session cookie
         const response = NextResponse.json({
             message: 'Login successful!',
             user: {
@@ -66,7 +66,7 @@ export async function POST(request) {
             }
         }, { status: 200 });
 
-        createSessionCookie(response, user);
+        rotateSession(response, user);
 
         return response;
     } 
