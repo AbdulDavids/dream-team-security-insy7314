@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
-import { sanitizeAndValidate } from '../../../../lib/security/validation.js';
+import { sanitizeAndValidate, validateInput } from '../../../../lib/security/validation.js';
 import { createSessionCookie, rotateSession } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
@@ -17,7 +17,8 @@ export async function POST(request) {
         const validationResults = {
             userName: sanitizeAndValidate(userName, 'username'),
             accountNumber: sanitizeAndValidate(accountNumber, 'accountNumber'),
-            password: sanitizeAndValidate(password, 'password'),
+            // password: sanitizeAndValidate(password, 'password'),
+            password: { sanitized: password, isValid: validateInput(password, 'password') },
         };
 
         // Collect validation errors
@@ -47,13 +48,13 @@ export async function POST(request) {
         });
 
         if (!user) {
-            return NextResponse.json({ error: 'Invalid username, account number, or password!' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid username, account number, or password! USER' }, { status: 401 });
         }
 
         // Verify password
         const validPassword = await verifyPassword(validationResults.password.sanitized, user.password);
         if (!validPassword) {
-            return NextResponse.json({ error: 'Invalid username, account number, or password!' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid username, account number, or password! PASS' }, { status: 401 });
         }
 
         // Create/rotate session cookie
