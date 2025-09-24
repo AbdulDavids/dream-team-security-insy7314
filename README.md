@@ -5,6 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 First, run the development server:
 
 ```bash
+npm install
 npm run dev
 # or
 yarn dev
@@ -19,6 +20,68 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Target Final Structure
+```
+insy-project/
+├── app/                           # App Router (Next.js 13+)
+│   ├── (auth)/                    # Route groups for auth pages
+│   │   ├── login/
+│   │   │   └── page.jsx           # Login page
+│   │   └── register/
+│   │       └── page.jsx           # Registration page
+│   │
+│   ├── dashboard/
+│   │   ├── user/
+│   │   │   └── page.jsx           # User dashboard
+│   │   └── admin/
+│   │       └── page.jsx           # Admin dashboard
+│   │
+│   ├── api/                       # API routes
+│   │   ├── auth/
+│   │   │   ├── login/route.js     # POST login
+│   │   │   ├── logout/route.js    # POST logout
+│   │   │   └── refresh/route.js   # Token refresh
+│   │   ├── payments/
+│   │   │   ├── route.js           # GET/POST payments
+│   │   │   └── [id]/
+│   │   │       └── route.js       # PUT/DELETE specific payment
+│   │   └── admin/
+│   │       └── verify/
+│   │           └── route.js       # Payment verification
+│   │
+│   ├── globals.css
+│   ├── layout.jsx                 # Root layout with security headers
+│   └── page.jsx                   # Landing page
+│
+├── components/                    # Reusable UI components
+│   ├── ui/                        # Basic UI components
+│   ├── forms/                     # Secure form components
+│   └── auth/                      # Auth-related components
+│
+├── lib/                          # Core utilities and configs
+│   ├── auth/
+│   │   ├── jwt.js                # JWT utilities
+│   │   ├── password.js           # bcrypt hashing/salting
+│   │   └── session.js            # Session management
+│   ├── db/
+│   │   ├── connection.js         # Secure DB connection
+│   │   ├── models/               # Data models
+│   │   └── migrations/           # DB schema
+│   ├── security/
+│   │   ├── validation.js         # Input validation/sanitization
+│   │   ├── csrf.js               # CSRF protection
+│   │   ├── rateLimit.js          # Rate limiting
+│   │   └── headers.js            # Security headers
+│   └── utils/
+│       ├── logger.js             # Secure logging
+│       └── encryption.js         # Additional encryption utilities
+│
+├── middleware.js                 # Next.js middleware (critical for security)
+├── next.config.js               # Security configurations
+└── package.json
+└── package.json
+```
 
 ## Learn More
 
