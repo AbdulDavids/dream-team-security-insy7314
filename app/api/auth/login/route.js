@@ -3,6 +3,7 @@ import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate } from '../../../../lib/security/validation.js';
+import { createSessionCookie } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
     try {
@@ -55,11 +56,22 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid username, account number, or password!' }, { status: 401 });
         }
 
-        // Successful login
-        return NextResponse.json({ message: 'Login successful!' }, { status: 200 });
-    }
-    catch (error) {
-        console.error('Login error:', error);
+        // Create session cookie
+        const response = NextResponse.json({
+            message: 'Login successful!',
+            user: {
+                userName: user.userName,
+                fullName: user.fullName,
+                role: user.role
+            }
+        }, { status: 200 });
+
+        createSessionCookie(response, user);
+
+        return response;
+    } 
+    catch (err) {
+        console.error('Login error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
