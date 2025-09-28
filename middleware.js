@@ -1,51 +1,37 @@
 import { NextResponse } from 'next/server';
+import rateLimiter from './lib/security/rateLimiter.js';
 
-export function middleware(req) {
-    const response = NextResponse.next();
+export function middleware(request) {
+  // Rate limiting check
+  const rateLimitResult = rateLimiter.checkRateLimit(request);
+  
+  if (!rateLimitResult.success) {
+    return new NextResponse(
+      JSON.stringify({
+        error: `Too many ${rateLimitResult.type} requests.`,
+        retryAfter: rateLimitResult.retryAfter
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(rateLimitResult.retryAfter),
+          'X-RateLimit-Limit': String(rateLimitResult.limit),
+          'X-RateLimit-Remaining': '0'
+        }
+      }
+    );
+  }
 
-    // Security headers
-
-    // Clickjacking protection
-    response.headers.set('X-Frame-Options', 'DENY');
-
-    // XSS protection
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-    // Enforce HTTPS
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-
-    // Content Security Policy (CSP)
-    const csp = [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'", // Next.js needs unsafe-inline for dev
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https:",
-        "font-src 'self'",
-        "connect-src 'self'",
-        "form-action 'self'",
-        "frame-ancestors 'none'", 
-        "base-uri 'self'",
-        "object-src 'none'"
-    ].join('; ');
-
-    response.headers.set('Content-Security-Policy', csp);
-
-    // Other security policies
-    response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-    response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
-    response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-    response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
-
-    // Remove server information
-    response.headers.delete('X-Powered-By');
-    response.headers.delete('Server');
-
-    return response;
+  // Continue with request (security headers set in next.config.js)
+  const response = NextResponse.next();
+  
+  return response;
 }
 
-// Apply middleware to all routes except static files, images, favicon, and public assets
 export const config = {
-    matcher: [ '/((?!_next/static|_next/image|favicon.ico|public).*)',],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/api/(.*)'
+  ]
 };
