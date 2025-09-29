@@ -3,12 +3,26 @@ import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate, validateInput } from '../../../../lib/security/validation.js';
-import { createSessionCookie, rotateSession } from '../../../../lib/auth/session.js';
+import { createSessionCookie, rotateSession, validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
     try {
+
+        // Validate CSRF token
+        if (!validateCsrfTokenForAuth(request)) {
+            return NextResponse.json({ 
+                error: 'Invalid CSRF token. Please refresh the page and try again.' 
+            }, { status: 403 });
+        }
+
         const body = await request.json();
         const { userName, accountNumber, password } = body;
+
+        if (!userName || !accountNumber || !password) {
+            return NextResponse.json({ 
+                error: 'All fields are required.' 
+            }, { status: 400 });
+        }
 
         // Connect to database
         await dbConnect();
@@ -17,7 +31,6 @@ export async function POST(request) {
         const validationResults = {
             userName: sanitizeAndValidate(userName, 'username'),
             accountNumber: sanitizeAndValidate(accountNumber, 'accountNumber'),
-            // password: sanitizeAndValidate(password, 'password'),
             password: { sanitized: password, isValid: validateInput(password, 'password') },
         };
 
@@ -64,12 +77,29 @@ export async function POST(request) {
                 userName: user.userName,
                 fullName: user.fullName,
                 role: user.role
-            }
+            },
+            csrfToken: null // Placeholder, will be set below
         }, { status: 200 });
 
-        rotateSession(response, user);
+        const { csrfToken } = rotateSession(response, user);
+       // rotateSession(response, user);
 
-        return response;
+        const responseBody = {
+         message: 'Login successful',
+          user: {
+              userName: user.userName,
+              fullName: user.fullName,
+                role: user.role
+    },
+    csrfToken: csrfToken
+};
+
+// Return the response with cookies from rotateSession
+return new NextResponse(JSON.stringify(responseBody), {
+    status: 200,
+    headers: response.headers
+    });
+
     } 
     catch (err) {
         console.error('Login error:', err);

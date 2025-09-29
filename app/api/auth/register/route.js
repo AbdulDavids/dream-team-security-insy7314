@@ -3,9 +3,17 @@ import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { hashPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate } from '../../../../lib/security/validation.js';
+import { validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
     try {
+        // Validate CSRF token
+        if (!validateCsrfTokenForAuth(request)) {
+            return NextResponse.json({ 
+                error: 'Invalid CSRF token. Please refresh the page and try again.' 
+            }, { status: 403 });
+        }
+
         // Parse request body
         const body = await request.json();
         const { fullName, userName, idNumber, accountNumber, password } = body;

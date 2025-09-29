@@ -20,14 +20,36 @@ export default function RegisterPage() {
 
     // Get CSRF token from cookies on component mount
     useEffect(() => {
-        const getCsrfToken = () => {
-            const cookies = document.cookie.split(';');
-            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrf-token='));
-            if (csrfCookie) {
-                setCsrfToken(csrfCookie.split('=')[1]);
+        const initializeCSRF = async () => {
+        try {
+            // Try to get existing CSRF token from cookie first
+            const getCsrfFromCookie = () => {
+                const cookies = document.cookie.split(';');
+                const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrf-token='));
+                return csrfCookie ? csrfCookie.split('=')[1] : null;
+            };
+            
+            let token = getCsrfFromCookie();
+            
+            // If no token exists, fetch one from the server
+            if (!token) {
+                const response = await fetch('/api/auth/csrf-token');
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.csrfToken;
+                }
             }
-        };
-        getCsrfToken();
+            
+            if (token) {
+                setCsrfToken(token);
+            }
+            
+        } catch (error) {
+            console.error('Failed to initialize CSRF token:', error);
+        }
+    };
+
+    initializeCSRF();
     }, []);
 
     const handleInputChange = (e) => {
@@ -136,6 +158,12 @@ export default function RegisterPage() {
                 } else if (response.status === 409) {
                     // Handle conflict errors (duplicate username, ID, or account number)
                     setErrors({ general: data.error });
+                } else if (response.status === 429) {
+                    // Handle rate limiting for registration
+                     const retryMinutes = data.retryAfterMinutes || Math.ceil(data.retryAfter / 60) || 15;
+                     setErrors({ 
+                        general: `${data.error} ${data.details || ''} Please try again in ${retryMinutes} minutes.`
+                    });
                 } else {
                     setErrors({ general: 'An unexpected error occurred. Please try again.' });
                 }
