@@ -6,7 +6,7 @@ import LogoutButton from './LogoutButton';
 export default async function UserDashboard() {
     // Get session from server-side cookies
     const cookieStore = await cookies();
-   // const cookieHeader = cookieStore.toString();
+
    const cookieHeader = cookieStore.getAll()
         .map(c => `${c.name}=${c.value}`)
         .join('; ');
@@ -18,14 +18,6 @@ export default async function UserDashboard() {
             get: (name) => (name === 'cookie' ? cookieHeader : null)
         }
     };
-    // const mockRequest = {
-    //     headers: {
-    //         get: (name) => {
-    //             if (name === 'cookie') return cookieHeader;
-    //             return null;
-    //         }
-    //     }
-    // };
 
     // Validate session
     const session = getSession(mockRequest);

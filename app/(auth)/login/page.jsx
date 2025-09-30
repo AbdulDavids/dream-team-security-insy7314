@@ -124,7 +124,7 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (response.ok) {
-                // Update CSRF token from response headers if provided
+                // Update CSRF token 
                 const newCsrfToken = data.csrfToken;
                 if (newCsrfToken) {
                     setCsrfToken(newCsrfToken);

@@ -3,7 +3,7 @@ import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate, validateInput } from '../../../../lib/security/validation.js';
-import { createSessionCookie, rotateSession, validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
+import { rotateSession, validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
     try {
@@ -60,6 +60,7 @@ export async function POST(request) {
             accountNumber: validationResults.accountNumber.sanitized
         });
 
+        // Generic error message
         if (!user) {
             return NextResponse.json({ error: 'Invalid username, account number, or password! USER' }, { status: 401 });
         }
@@ -70,7 +71,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid username, account number, or password! PASS' }, { status: 401 });
         }
 
-        // Create/rotate session cookie
+        // Create secure session
         const response = NextResponse.json({
             message: 'Login successful!',
             user: {
@@ -78,27 +79,26 @@ export async function POST(request) {
                 fullName: user.fullName,
                 role: user.role
             },
-            csrfToken: null // Placeholder, will be set below
+            csrfToken: null 
         }, { status: 200 });
 
         const { csrfToken } = rotateSession(response, user);
-       // rotateSession(response, user);
 
         const responseBody = {
-         message: 'Login successful',
-          user: {
-              userName: user.userName,
-              fullName: user.fullName,
+            message: 'Login successful',
+            user: {
+                userName: user.userName,
+                fullName: user.fullName,
                 role: user.role
-    },
-    csrfToken: csrfToken
-};
+            },
+            csrfToken: csrfToken
+        };
 
-// Return the response with cookies from rotateSession
-return new NextResponse(JSON.stringify(responseBody), {
-    status: 200,
-    headers: response.headers
-    });
+        // Return the response with cookies from rotateSession
+        return new NextResponse(JSON.stringify(responseBody), {
+            status: 200,
+            headers: response.headers
+            });
 
     } 
     catch (err) {
