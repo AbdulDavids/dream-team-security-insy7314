@@ -1,10 +1,10 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession, requireRole } from '../../../lib/auth/session.js';
-import LogoutButton from './LogoutButton';
+import LogoutButton from '../user/LogoutButton.jsx';
 
-export default async function UserDashboard() {
-    // Get session from server-side cookies
+export default async function EmployeeDashboard() {
+// Get session from server-side cookies
     const cookieStore = await cookies();
 
    const cookieHeader = cookieStore.getAll()
@@ -27,7 +27,7 @@ export default async function UserDashboard() {
     }
 
     // Check role-based access
-    const roleCheck = requireRole(session, 'user');
+    const roleCheck = requireRole(session, 'employee');
     if (!roleCheck.hasAccess) {
         redirect('/login');
     }
@@ -42,11 +42,8 @@ export default async function UserDashboard() {
                     <div className="flex justify-between items-center py-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">
-                                Welcome, {user.userName}!
+                                Employee Dashboard
                             </h1>
-                            <p className="text-sm text-gray-600 mt-1">
-                                User Dashboard
-                            </p>
                         </div>
                         <LogoutButton csrfToken={csrfToken} />
                     </div>
@@ -72,10 +69,10 @@ export default async function UserDashboard() {
                                     <div className="ml-5 w-0 flex-1">
                                         <dl>
                                             <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Account Status
+                                                Employee ID
                                             </dt>
                                             <dd className="text-lg font-medium text-gray-900">
-                                                Active User
+                                                {user.userName}
                                             </dd>
                                         </dl>
                                     </div>
@@ -134,51 +131,19 @@ export default async function UserDashboard() {
                         </div>
                     </div>
 
-                    {/* Actions Section */}
-                    <div className="bg-white shadow rounded-lg">
-                        <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                                Available Actions
-                            </h3>
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                {/* Create Payment Button */}
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                                >
-                                    <svg className="-ml-1 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                    Create Payment
-                                </button>
-
-                                {/* View Payments Button (placeholder) */}
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                                >
-                                    <svg className="-ml-1 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                    </svg>
-                                    View Payments
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Recent Activity Section (placeholder) */}
+                    {/* Recent Payments */}
                     <div className="bg-white shadow rounded-lg mt-6">
                         <div className="px-4 py-5 sm:p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                                Recent Activity
+                                Recent Payments
                             </h3>
                             <div className="text-center py-8">
                                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                 </svg>
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">No recent activity</h3>
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No recent payments</h3>
                                 <p className="mt-1 text-sm text-gray-500">
-                                    Your payment history will appear here once you start making transactions.
+                                    Client payment information will appear here when available.
                                 </p>
                             </div>
                         </div>

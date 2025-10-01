@@ -11,8 +11,18 @@ export async function POST(request) {
         }
 
         // Validate CSRF token
-        const csrfHeader = request.headers.get('x-csrf-token') || (await request.json()).csrfToken;
-        if (session.csrfToken !== csrfHeader) {
+        let csrfHeader = request.headers.get('x-csrf-token');
+        try{
+             const body = await request.json().catch(() => null);
+            if (!csrfHeader && body?.csrfToken) {
+                csrfHeader = body.csrfToken;
+            }
+        } catch (err) {
+            csrfHeader = null;
+        }
+        
+
+        if (!csrfHeader || session.csrfToken !== csrfHeader) {
             return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
         }
 

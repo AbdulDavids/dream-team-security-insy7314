@@ -52,6 +52,14 @@ export default function Home() {
               Register
             </Link>
           </div>
+          <div className="flex justify-center">
+            <Link 
+              href="/employee-login"
+              className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 min-w-[140px]"
+            >
+              Employee Login
+            </Link>
+          </div>
         </div>
 
         {/* Additional Info */}

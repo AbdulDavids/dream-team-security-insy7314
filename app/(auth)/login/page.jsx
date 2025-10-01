@@ -18,26 +18,50 @@ export default function LoginPage() {
 
     // Get CSRF token from cookies on component mount
     useEffect(() => {
-        // Check for success messages from URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('registered') === 'true') {
-            setSuccessMessage('Registration successful! Please log in with your credentials.');
-        } else if (urlParams.get('logout') === 'true') {
-            setSuccessMessage('You have been logged out successfully.');
-        }
-        
-        // Clear URL params
-        if (urlParams.has('registered') || urlParams.has('logout')) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-        const getCsrfToken = () => {
-            const cookies = document.cookie.split(';');
-            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrf-token='));
-            if (csrfCookie) {
-                setCsrfToken(csrfCookie.split('=')[1]);
+        const initializeCSRF = async () => {
+        try {
+            // Try to get existing CSRF token from cookie first
+            const getCsrfFromCookie = () => {
+                const cookies = document.cookie.split(';');
+                const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrf-token='));
+                return csrfCookie ? csrfCookie.split('=')[1] : null;
+            };
+            
+            let token = getCsrfFromCookie();
+            
+            // If no token exists, fetch one from the server
+            if (!token) {
+                const response = await fetch('/api/auth/csrf-token');
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.csrfToken;
+                } 
+            } 
+            
+            if (token) {
+                setCsrfToken(token);
             }
-        };
-        getCsrfToken();
+            
+        } catch (error) {
+            console.error('Failed to initialize CSRF token:', error);
+        }
+    };
+
+    // Handle success messages from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('registered') === 'true') {
+        setSuccessMessage('Registration successful! Please log in with your credentials.');
+    } else if (urlParams.get('logout') === 'true') {
+        setSuccessMessage('You have been logged out successfully.');
+    }
+    
+    // Clear URL params
+    if (urlParams.has('registered') || urlParams.has('logout')) {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    // Initialize CSRF token
+    initializeCSRF();
     }, []);
 
     const handleInputChange = (e) => {
@@ -100,7 +124,7 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (response.ok) {
-                // Update CSRF token from response headers if provided
+                // Update CSRF token 
                 const newCsrfToken = data.csrfToken;
                 if (newCsrfToken) {
                     setCsrfToken(newCsrfToken);
@@ -115,6 +139,15 @@ export default function LoginPage() {
                 } else if (response.status === 401) {
                     // Handle authentication errors
                     setErrors({ general: data.error });
+                } else if (response.status === 403) {
+                // Handle CSRF errors
+                setErrors({ general: data.error + ' Please refresh the page and try again.' });
+                } else if (response.status === 429) {
+                // Handle rate limiting - this was missing!
+                const retryMinutes = data.retryAfterMinutes || Math.ceil(data.retryAfter / 60) || 15;
+                setErrors({ 
+                    general: `${data.error} ${data.details || ''} Please try again in ${retryMinutes} minutes.`
+                });
                 } else {
                     setErrors({ general: 'An unexpected error occurred. Please try again.' });
                 }
