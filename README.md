@@ -276,6 +276,27 @@ dream-team-security-insy7314/
 ✅ Environment variable protection
 ✅ Secure cookie configuration
 
+## CI/CD & DevSecOps
+
+### GitHub Actions Security Pipeline
+
+We've implemented automated security checks using GitHub Actions (`.github/workflows/devsecops.yml`):
+
+- **Dependency Vulnerability Audit**: Scans npm packages for known vulnerabilities using `npm audit`
+- **CodeQL Static Analysis**: Automated code scanning for security vulnerabilities and code quality issues
+- **Automated Security Reports**: Results published to GitHub Security tab
+
+![GitHub Actions DevSecOps Checks](image/github-checks-devsecops.png)
+
+### Vercel Preview Deployments
+
+Every pull request automatically deploys a preview environment on Vercel with:
+- Automatic HTTPS/TLS certificates
+- Production-like security configurations
+- Integrated with GitHub Actions security checks
+
+![Vercel PR Previews with GitHub Actions](image/vercel-pr-previews-github-actions-devsecops.png)
+
 ## Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
