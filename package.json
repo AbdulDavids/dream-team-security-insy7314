@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node scripts/dev.mjs",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "dev:http": "node scripts/dev.mjs",
+    "tls:setup": "bash ./scripts/setup-local-tls.sh",
+    "dev:https": "DEV_USE_HTTPS=1 node scripts/dev.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

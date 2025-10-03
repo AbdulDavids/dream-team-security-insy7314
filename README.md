@@ -2,23 +2,31 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies and start the development server:
 
 ```bash
 npm install
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev         # HTTP on http://localhost:3000
+# or enable HTTPS + TLS locally
+npm run tls:setup   # one-time self-signed certificate for localhost
+npm run dev:https   # HTTPS on https://localhost:3443 with HTTP redirect
 ```
 ## Employee login details:
 Employee ID: EMP001
 Password: Password123!
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) for HTTP. When running with HTTPS, navigate to [https://localhost:3443](https://localhost:3443); the HTTP port will redirect.
+
+Every page now displays a banner showing whether HTTPS + TLS is active, so you always know which transport you are using in development. You can also toggle HTTPS by passing `--https` to `npm run dev` (`npm run dev -- --https`).
+
+### Development server options
+
+- `npm run dev` / `npm run dev:http` – starts the standard Next.js dev server over HTTP (default).
+- `npm run dev -- --https` – flips the same command into HTTPS mode for a one-off run.
+- `npm run dev:https` – convenience alias that always starts in HTTPS mode.
+- `npm run tls:setup` – generates `certs/localhost-cert.pem` and `certs/localhost-key.pem`. Run once, then trust the certificate in your OS/browser so the HTTPS banner reports “HTTPS + TLS active” without warnings.
+
+The security banner in the page header reads the current protocol at runtime. When you switch between HTTP and HTTPS the indicator will update automatically, making it easy to verify which transport you are using.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
