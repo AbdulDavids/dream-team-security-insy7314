@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession, requireRole } from '../../../lib/auth/session.js';
 import LogoutButton from './LogoutButton';
+import Link from 'next/link'
 
 export default async function UserDashboard() {
     // Get session from server-side cookies
@@ -142,15 +143,15 @@ export default async function UserDashboard() {
                             </h3>
                             <div className="flex flex-col sm:flex-row gap-4">
                                 {/* Create Payment Button */}
-                                <button
-                                    type="button"
+                                <Link
+                                    href="/payments/create"
                                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                                 >
                                     <svg className="-ml-1 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
                                     Create Payment
-                                </button>
+                                </Link>
 
                                 {/* View Payments Button (placeholder) */}
                                 <button
