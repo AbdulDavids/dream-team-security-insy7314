@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getSession } from "../../../../lib/auth/session";
 import dbConnect from '../../../../lib/db/connection.js';
 import Payment from '../../../../lib/db/models/payment.js';
 import { sanitizeAndValidate, validateAmount } from '../../../../lib/security/validation.js';
@@ -67,13 +66,10 @@ export async function POST(request) {
             swiftCode: sanitizeAndValidate(swiftCode.toString().toUpperCase(), 'swiftCode')
         };
 
-        // Amount validation (numeric)
-        // const amountNum = typeof amount === 'number' ? amount : parseFloat(String(amount).trim());
-
         // Collect validation errors
         const validationErrors = {}
 
-        if (validationResults.amount.isValid) {
+        if (!validationResults.amount.isValid) {
             validationErrors.amount = 'Amount must be between 0.01 and 999,999.99';
         }
         if (!validationResults.currency.isValid) {
@@ -111,7 +107,10 @@ export async function POST(request) {
             recipientAccountNumber: validationResults.accountNumber.sanitized,
             swiftCode: validationResults.swiftCode.sanitized,
             reference: reference || '',
-            status: 'pending'
+            status: 'pending',
+            // Genreate ID's
+            paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            referenceNumber: `REF-${Date.now()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`
         });
 
         await payment.save();
