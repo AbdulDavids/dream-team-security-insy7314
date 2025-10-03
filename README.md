@@ -156,9 +156,8 @@ Watch our demonstration of generating self-signed certificates and running the a
 
 https://github.com/user-attachments/assets/f860c434-7fb0-46f7-af29-dff2e83464fe
 
-:::note
-Because the certificates are self-signed, you will need to trust the certificate in your browser or OS to avoid warnings when running the application locally with HTTPS + TLS. Just click on the `advanced` button and then `proceed to localhost (unsafe)` to bypass the warning. You can also [add the certificate to your trust store](https://support.google.com/chrome/a/answer/3505249?hl=en) to avoid the warning.
-:::
+> [!CAUTION]
+> Because the certificates are self-signed, you will need to trust the certificate in your browser or OS to avoid warnings when running the application locally with HTTPS + TLS. Just click on the `advanced` button and then `proceed to localhost (unsafe)` to bypass the warning. You can also [add the certificate to your trust store](https://support.google.com/chrome/a/answer/3505249?hl=en) to avoid the warning.
 
 ## Login Credentials
 
