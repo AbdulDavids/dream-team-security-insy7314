@@ -283,7 +283,7 @@ export default function CreatePaymentForm({csrfToken, userName}){
                                     id="currency"
                                     className={`mt-1 block w-full px-3 py-2 border ${
                                         errors.currency ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
-                                    } bg-white rounded-md shadow-sm focus:outline-none focus:ring-2 sm:text-sm`}
+                                    } bg-white rounded-md shadow-sm text-gray-700 focus:outline-none focus:ring-2 sm:text-sm`}
                                     value={formData.currency}
                                     onChange={handleInputChange}
                                 >
