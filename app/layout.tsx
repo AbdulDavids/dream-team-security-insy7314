@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     template: "%s | Dream Team Security Portal",
   },
   description: "Secure international payments portal for the Dream Team Security project.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

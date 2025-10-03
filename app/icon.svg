@@ -1,11 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title>Dream Team Security Shield</title>
+  <title>Dream Team Security Badge</title>
   <defs>
     <linearGradient id="shield-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb" />
-      <stop offset="100%" stop-color="#7c3aed" />
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="inner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5f5" />
     </linearGradient>
   </defs>
   <path d="M32 4l22 8v15c0 16.1-9.7 30.7-22 33-12.3-2.3-22-16.9-22-33V12l22-8z" fill="url(#shield-gradient)" />
-  <path d="M32 14a14 14 0 0 0-14 14c0 9 6 18 14 22 8-4 14-13 14-22A14 14 0 0 0 32 14zm0 8a6 6 0 0 1 6 6c0 4.4-2.9 9.5-6 11.6-3.1-2.1-6-7.2-6-11.6a6 6 0 0 1 6-6z" fill="#ecfeff" opacity="0.9" />
+  <path d="M32 14a14 14 0 0 0-14 14c0 9 6 18 14 22 8-4 14-13 14-22A14 14 0 0 0 32 14z" fill="url(#inner-gradient)" opacity="0.95" />
+  <path d="M27.5 33.5l4.2 4.3 8.8-8.8" fill="none" stroke="#312e81" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
 </svg>
