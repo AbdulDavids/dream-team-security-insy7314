@@ -29,61 +29,6 @@ This application is a secure payment processing platform that allows employees t
 - CSRF protection
 - Security headers implementation
 
-## Security Implementation
-
-### 1. HTTPS & TLS Encryption
-
-**What is HTTPS?**
-HTTPS (Hypertext Transfer Protocol Secure) is the secure version of HTTP. It encrypts all data transmitted between the client and server, preventing eavesdropping and man-in-the-middle attacks.
-
-**How TLS Works:**
-- **Handshake:** Client and server negotiate encryption algorithms and exchange keys
-- **Authentication:** Server presents a digital certificate to prove identity
-- **Encryption:** Symmetric encryption secures all subsequent data transmission
-- **Integrity:** Data is hashed to detect tampering
-
-**Our Implementation:**
-- Self-signed certificates for local development (`certs/localhost-cert.pem`, `certs/localhost-key.pem`)
-- Custom HTTPS development server with automatic HTTP→HTTPS redirect
-- Visual security indicator showing real-time TLS status
-- Vercel deployment uses automatic SSL/TLS certificates in production
-
-### 2. Input Validation & Sanitization
-
-- **RegEx Patterns:** Validate account numbers, SWIFT codes, and payment amounts
-- **Whitelist Validation:** Only allow specific formats for sensitive fields
-- **XSS Prevention:** Sanitize user inputs to prevent script injection
-- **SQL Injection Protection:** Parameterized queries and input validation
-
-### 3. Authentication & Authorization
-
-- **JWT (JSON Web Tokens):** Secure, stateless authentication
-- **Password Hashing:** bcrypt with salt for password storage
-- **Role-Based Access Control (RBAC):** Separate employee and admin permissions
-- **Session Management:** Secure token storage and refresh mechanisms
-
-### 4. Security Headers
-
-Implemented via `next.config.js` and middleware:
-- **Content-Security-Policy (CSP):** Prevents XSS attacks
-- **X-Frame-Options:** Prevents clickjacking
-- **X-Content-Type-Options:** Prevents MIME-type sniffing
-- **Strict-Transport-Security (HSTS):** Enforces HTTPS
-- **Referrer-Policy:** Controls referrer information
-
-### 5. Rate Limiting & CSRF Protection
-
-- Request throttling to prevent brute force attacks
-- CSRF tokens for state-changing operations
-- Secure cookie configurations (HttpOnly, Secure, SameSite)
-
-### 6. Secure Database Practices
-
-- Connection string encryption
-- Prepared statements for queries
-- Secure credential storage (environment variables)
-- Regular data validation
-
 ## Getting Started
 
 ### Prerequisites
@@ -295,6 +240,61 @@ Every pull request automatically deploys a preview environment on Vercel with:
 - Integrated with GitHub Actions security checks
 
 ![Vercel PR Previews with GitHub Actions](image/vercel-pr-previews-github-actions-devsecops.png)
+
+## Security Implementation
+
+### 1. HTTPS & TLS Encryption
+
+**What is HTTPS?**
+HTTPS (Hypertext Transfer Protocol Secure) is the secure version of HTTP. It encrypts all data transmitted between the client and server, preventing eavesdropping and man-in-the-middle attacks.
+
+**How TLS Works:**
+- **Handshake:** Client and server negotiate encryption algorithms and exchange keys
+- **Authentication:** Server presents a digital certificate to prove identity
+- **Encryption:** Symmetric encryption secures all subsequent data transmission
+- **Integrity:** Data is hashed to detect tampering
+
+**Our Implementation:**
+- Self-signed certificates for local development (`certs/localhost-cert.pem`, `certs/localhost-key.pem`)
+- Custom HTTPS development server with automatic HTTP→HTTPS redirect
+- Visual security indicator showing real-time TLS status
+- Vercel deployment uses automatic SSL/TLS certificates in production
+
+### 2. Input Validation & Sanitization
+
+- **RegEx Patterns:** Validate account numbers, SWIFT codes, and payment amounts
+- **Whitelist Validation:** Only allow specific formats for sensitive fields
+- **XSS Prevention:** Sanitize user inputs to prevent script injection
+- **SQL Injection Protection:** Parameterized queries and input validation
+
+### 3. Authentication & Authorization
+
+- **JWT (JSON Web Tokens):** Secure, stateless authentication
+- **Password Hashing:** bcrypt with salt for password storage
+- **Role-Based Access Control (RBAC):** Separate employee and admin permissions
+- **Session Management:** Secure token storage and refresh mechanisms
+
+### 4. Security Headers
+
+Implemented via `next.config.js` and middleware:
+- **Content-Security-Policy (CSP):** Prevents XSS attacks
+- **X-Frame-Options:** Prevents clickjacking
+- **X-Content-Type-Options:** Prevents MIME-type sniffing
+- **Strict-Transport-Security (HSTS):** Enforces HTTPS
+- **Referrer-Policy:** Controls referrer information
+
+### 5. Rate Limiting & CSRF Protection
+
+- Request throttling to prevent brute force attacks
+- CSRF tokens for state-changing operations
+- Secure cookie configurations (HttpOnly, Secure, SameSite)
+
+### 6. Secure Database Practices
+
+- Connection string encryption
+- Prepared statements for queries
+- Secure credential storage (environment variables)
+- Regular data validation
 
 ## Resources
 
