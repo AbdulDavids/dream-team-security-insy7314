@@ -62,13 +62,13 @@ export async function POST(request) {
 
         // Generic error message
         if (!user) {
-            return NextResponse.json({ error: 'Invalid username, account number, or password! USER' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid username, account number, or password!' }, { status: 401 });
         }
 
         // Verify password
         const validPassword = await verifyPassword(validationResults.password.sanitized, user.password);
         if (!validPassword) {
-            return NextResponse.json({ error: 'Invalid username, account number, or password! PASS' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid username, account number, or password!' }, { status: 401 });
         }
 
         // Create secure session
