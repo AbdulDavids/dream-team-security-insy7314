@@ -17,6 +17,10 @@ Password: Password123!
 
 Open [http://localhost:3000](http://localhost:3000) for HTTP. When running with HTTPS, navigate to [https://localhost:3443](https://localhost:3443); the HTTP port will redirect.
 
+
+https://github.com/user-attachments/assets/f860c434-7fb0-46f7-af29-dff2e83464fe
+
+
 Every page now displays a banner showing whether HTTPS + TLS is active, so you always know which transport you are using in development. You can also toggle HTTPS by passing `--https` to `npm run dev` (`npm run dev -- --https`).
 
 ### Development server options
