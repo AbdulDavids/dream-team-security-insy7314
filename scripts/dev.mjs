@@ -27,11 +27,18 @@ if (useHttps) {
   });
   forwardExit(child);
 } else {
-  const binName = process.platform === 'win32' ? 'next.cmd' : 'next';
-  const nextBin = path.join(process.cwd(), 'node_modules', '.bin', binName);
-  const child = spawn(nextBin, ['dev', '--turbopack', ...filteredArgs], {
-    stdio: 'inherit',
-    env: { ...process.env },
-  });
+  const nextBin = path.join(process.cwd(), 'node_modules', '.bin', 'next');
+  const isWindows = process.platform === 'win32';
+  
+  const child = isWindows
+    ? spawn('cmd', ['/c', nextBin, 'dev', '--turbopack', ...filteredArgs], {
+        stdio: 'inherit',
+        env: { ...process.env },
+      })
+    : spawn(nextBin, ['dev', '--turbopack', ...filteredArgs], {
+        stdio: 'inherit',
+        env: { ...process.env },
+      });
+  
   forwardExit(child);
 }
