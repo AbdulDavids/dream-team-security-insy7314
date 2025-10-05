@@ -28,12 +28,12 @@ function createCertificate() {
   log(`Generating self-signed certificate in ${CERT_DIR}`);
   
   const attrs = [
-    { name: 'commonName', value: 'localhost' },
-    { name: 'countryName', value: 'ZA' },
-    { name: 'stateOrProvinceName', value: 'Local' },
-    { name: 'localityName', value: 'Local' },
-    { name: 'organizationName', value: 'Dev' },
-    { name: 'organizationalUnitName', value: 'Dev' }
+    { name: 'commonName', value: process.env.LOCAL_TLS_CN || 'localhost' },
+    { name: 'countryName', value: process.env.LOCAL_TLS_C || 'ZA' },
+    { name: 'stateOrProvinceName', value: process.env.LOCAL_TLS_ST || 'Local' },
+    { name: 'localityName', value: process.env.LOCAL_TLS_L || 'Local' },
+    { name: 'organizationName', value: process.env.LOCAL_TLS_O || 'Dev' },
+    { name: 'organizationalUnitName', value: process.env.LOCAL_TLS_OU || 'Dev' }
   ];
   
   const options = {
