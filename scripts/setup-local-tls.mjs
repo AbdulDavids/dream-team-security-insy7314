@@ -1,6 +1,6 @@
 import selfsigned from 'selfsigned';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,9 +56,9 @@ function createCertificate() {
   writeFileSync(KEY_PATH, pems.private, 'utf8');
   writeFileSync(CERT_PATH, pems.cert, 'utf8');
   
-  log('Created:');
-  log(` - ${KEY_PATH}`);
-  log(` - ${CERT_PATH}`);
+  log('Created certificate and key files:');
+  log(` - ${basename(KEY_PATH)}`);
+  log(` - ${basename(CERT_PATH)}`);
 }
 
 function main() {
