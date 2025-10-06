@@ -8,6 +8,7 @@
     "start": "next start",
     "dev:http": "node scripts/dev.mjs",
     "tls:setup": "node scripts/setup-local-tls.mjs",
+    "tls:clean": "node scripts/clean-certs.mjs",
     "dev:https": "node scripts/dev.mjs --https"
   },
   "dependencies": {
