@@ -1,31 +1,83 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/reference/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#jobs-overview & https://circleci.com/docs/reference/configuration-reference/#jobs
-jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/guides/execution-managed/executor-intro/ & https://circleci.com/docs/reference/configuration-reference/#executor-job
+orbs:
+  node: circleci/node@5.2.0
+
+executors:
+  node-default:
     docker:
-      # Specify the version you desire here
-      # See: https://circleci.com/developer/images/image/cimg/base
-      - image: cimg/base:current
+      - image: cimg/node:20.18
+    working_directory: ~/project
 
-    # Add steps to the job
-    # See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#steps-overview & https://circleci.com/docs/reference/configuration-reference/#steps
+commands:
+  npm-install:
     steps:
-      # Checkout the code as the first step.
-      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
 
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
+jobs:
+  install:
+    executor: node-default
+    steps:
+      - checkout
+      - npm-install
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+
+  quality:
+    executor: node-default
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run tests (if configured)
+          command: |
+            if npm run | grep -qE "(^|\s)test\b"; then
+              npm test
+            else
+              echo "Skipping tests: no npm 'test' script defined"
+            fi
+      - run:
+          name: Run lint (if configured)
+          command: |
+            if npm run | grep -qE "(^|\s)lint\b"; then
+              npm run lint
+            else
+              echo "Skipping lint: no npm 'lint' script defined"
+            fi
+
+  build:
+    executor: node-default
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Build application
+          command: npm run build
+      - store_artifacts:
+          path: .next
+          destination: next-build
+
 workflows:
-  say-hello-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  build-and-test:
     jobs:
-      - say-hello
+      - install
+      - quality:
+          requires:
+            - install
+      - build:
+          requires:
+            - quality
