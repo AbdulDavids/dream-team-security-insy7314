@@ -1,5 +1,9 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ensure Next.js targets this project root when resolving workspace files
+  outputFileTracingRoot: path.join(__dirname),
   async headers() {
     return [
       {

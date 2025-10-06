@@ -7,8 +7,9 @@
     "build": "next build --turbopack",
     "start": "next start",
     "dev:http": "node scripts/dev.mjs",
-    "tls:setup": "bash ./scripts/setup-local-tls.sh",
-    "dev:https": "DEV_USE_HTTPS=1 node scripts/dev.mjs"
+    "tls:setup": "node scripts/setup-local-tls.mjs",
+    "tls:clean": "node scripts/clean-certs.mjs",
+    "dev:https": "node scripts/dev.mjs --https"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -19,6 +20,7 @@
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "selfsigned": "^3.0.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
