@@ -222,6 +222,16 @@ dream-team-security-insy7314/
 
 ## CI/CD & DevSecOps
 
+### CircleCI Checking Pipeline
+
+Every commit is passed through an `install`, `quality`, `build` CircleCI pipeline.
+
+<img width="2074" height="1242" alt="Cleanshot of Pipelines - AbdulDavidsdream-team-security-insy7314 in Arc 001968" src="https://github.com/user-attachments/assets/9cfae9b0-2aed-46c2-a255-8c13ef95e84e" />
+
+CircleCI also allows us to monitor performance of the application.
+
+<img width="2093" height="1561" alt="Cleanshot of build (10) - AbdulDavidsdream-team-security-insy7314 in Arc 001970" src="https://github.com/user-attachments/assets/01476d77-a12f-40c4-9f8e-3733f78465df" />
+
 ### GitHub Actions Security Pipeline
 
 We've implemented automated security checks using GitHub Actions (`.github/workflows/devsecops.yml`):
@@ -231,6 +241,9 @@ We've implemented automated security checks using GitHub Actions (`.github/workf
 - **Automated Security Reports**: Results published to GitHub Security tab
 
 ![GitHub Actions DevSecOps Checks](image/github-checks-devsecops.png)
+
+
+
 
 ### Vercel Preview Deployments
 
