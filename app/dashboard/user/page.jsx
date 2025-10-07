@@ -169,7 +169,9 @@ export default async function UserDashboard() {
                     </div>
 
                     {/* Recent Activity */}
-                    <RecentPayments csrfToken={csrfToken} />
+                    <div className="mt-8">
+                        <RecentPayments csrfToken={csrfToken} />
+                    </div>
                 </div>
             </main>
         </div>
