@@ -103,7 +103,7 @@ export async function POST(request) {
         // Set session cookie
         cookieStore.set('session-token', token, {
             httpOnly: true,
-            secure: !isDev, // Only secure in production
+            secure: true, 
             sameSite: 'strict',
             path: '/',
             maxAge: SESSION_CONFIG.ABSOLUTE_TIMEOUT
