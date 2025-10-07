@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import dbConnect from '../../../../lib/db/connection.js';
 import Employee from '../../../../lib/db/models/employee.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate } from '../../../../lib/security/validation.js';
 import { rotateSession, validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
+import { signToken } from '../../../../lib/auth/jwt.js';
+import { v4 as uuidv4 } from 'uuid';
+
+const SESSION_CONFIG = {
+  ABSOLUTE_TIMEOUT: 30 * 60,
+  IDLE_TIMEOUT: 10 * 60
+};
 
 export async function POST(request) {
     try {
@@ -57,39 +65,54 @@ export async function POST(request) {
         }
 
         // Create secure session 
-        const response = NextResponse.json({
-            message: 'Login successful',
-            user: {
-                employeeId: employee.employeeId,
-                fullName: employee.fullName,
-                role: employee.role
-            },
-            csrfToken: null
-        }, { status: 200 });
-
-        const { csrfToken } = rotateSession(response, {
-            _id: employee._id,
-            userName: employee.employeeId, // Use employeeId as username
+        const cookieStore = await cookies();
+        const sessionId = uuidv4();
+        const csrfToken = uuidv4();
+        const now = Math.floor(Date.now() / 1000);
+        
+        const sessionPayload = {
+            _id: employee._id.toString(),
+            userName: employee.employeeId,
             fullName: employee.fullName,
-            role: employee.role
+            role: employee.role,
+            sessionId: sessionId,
+            issuedAt: now,
+            lastActivity: now,
+            absoluteExpiry: now + SESSION_CONFIG.ABSOLUTE_TIMEOUT,
+            idleExpiry: now + SESSION_CONFIG.IDLE_TIMEOUT
+        };
+        
+        const token = signToken(sessionPayload);
+        const isDev = process.env.NODE_ENV === 'development';
+        
+        // Set session cookie 
+        cookieStore.set('session-token', token, {
+            httpOnly: true,
+            secure: !isDev, // Only secure in production
+            sameSite: 'strict',
+            path: '/',
+            maxAge: SESSION_CONFIG.ABSOLUTE_TIMEOUT
         });
-
-        const responseBody = {
-            message: 'Login successful',
+        
+        // Set CSRF cookie
+        cookieStore.set('csrf-token', csrfToken, {
+            httpOnly: false, // Accessible to forms
+            secure: true,
+            sameSite: 'strict',
+            path: '/',
+            maxAge: SESSION_CONFIG.ABSOLUTE_TIMEOUT
+        });
+        
+        return NextResponse.json({
+            message: 'Employee Login successful',
             user: {
                 employeeId: employee.employeeId,
                 fullName: employee.fullName,
                 role: employee.role
             },
             csrfToken: csrfToken
-            };
-
-        // Return new CSRF token for next request
-        return new NextResponse(JSON.stringify(responseBody), {
-            status: 200,
-            headers: response.headers 
-        });
-
+        }, { status: 200 });
+        
     } catch (err) {
         console.error('Employee login error:', err);
         return NextResponse.json({ 

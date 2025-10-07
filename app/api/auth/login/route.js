@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import dbConnect from '../../../../lib/db/connection.js';
 import User from '../../../../lib/db/models/user.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate, validateInput } from '../../../../lib/security/validation.js';
 import { rotateSession, validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
+import { signToken } from '../../../../lib/auth/jwt.js';
+import { v4 as uuidv4 } from 'uuid';
+
+const SESSION_CONFIG = {
+  ABSOLUTE_TIMEOUT: 30 * 60,
+  IDLE_TIMEOUT: 10 * 60
+};
 
 export async function POST(request) {
     try {
@@ -72,19 +80,45 @@ export async function POST(request) {
         }
 
         // Create secure session
-        const response = NextResponse.json({
-            message: 'Login successful!',
-            user: {
-                userName: user.userName,
-                fullName: user.fullName,
-                role: user.role
-            },
-            csrfToken: null 
-        }, { status: 200 });
+        const cookieStore = await cookies();
+        const sessionId = uuidv4();
+        const csrfToken = uuidv4();
+        const now = Math.floor(Date.now() / 1000);
 
-        const { csrfToken } = rotateSession(response, user);
+        const sessionPayload = {
+            userId: user._id.toString(),
+            userName: user.userName,
+            fullName: user.fullName,
+            role: user.role,
+            sessionId: sessionId,
+            issuedAt: now,
+            lastActivity: now,
+            absoluteExpiry: now + SESSION_CONFIG.ABSOLUTE_TIMEOUT,
+            idleExpiry: now + SESSION_CONFIG.IDLE_TIMEOUT
+        };
 
-        const responseBody = {
+        const token = signToken(sessionPayload);
+        const isDev = process.env.NODE_ENV === 'development';
+
+        // Set session cookie
+        cookieStore.set('session-token', token, {
+            httpOnly: true,
+            secure: !isDev, // Only secure in production
+            sameSite: 'strict',
+            path: '/',
+            maxAge: SESSION_CONFIG.ABSOLUTE_TIMEOUT
+        });
+
+        // Set CSRF cookie
+        cookieStore.set('csrf-token', csrfToken, {
+            httpOnly: false, // Accessible forms
+            secure: true,
+            sameSite: 'strict',
+            path: '/',
+            maxAge: SESSION_CONFIG.ABSOLUTE_TIMEOUT
+        });
+
+        return NextResponse.json({
             message: 'Login successful',
             user: {
                 userName: user.userName,
@@ -92,13 +126,7 @@ export async function POST(request) {
                 role: user.role
             },
             csrfToken: csrfToken
-        };
-
-        // Return the response with cookies from rotateSession
-        return new NextResponse(JSON.stringify(responseBody), {
-            status: 200,
-            headers: response.headers
-            });
+        }, { status: 200 });
 
     } 
     catch (err) {
