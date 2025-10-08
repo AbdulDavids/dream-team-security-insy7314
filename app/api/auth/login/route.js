@@ -98,7 +98,6 @@ export async function POST(request) {
         };
 
         const token = signToken(sessionPayload);
-        const isDev = process.env.NODE_ENV === 'development';
 
         // Set session cookie
         cookieStore.set('session-token', token, {
