@@ -1,11 +1,19 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession, requireRole } from '../../../lib/auth/session.js';
 import LogoutButton from './LogoutButton';
 import Link from 'next/link'
 import RecentPayments from '../../payments/fetch/RecentPayments.jsx';
 
+// Add dynamic rendering to prevent caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function UserDashboard() {
+
+    // Set cache control headers
+    const headersList = await headers();
+
     // Get session from server-side cookies
     const cookieStore = await cookies();
 

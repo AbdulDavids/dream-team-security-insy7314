@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 
 export default function LogoutButton({ csrfToken }) {
     const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
 
     const handleLogout = async () => {
         setIsLoading(true);
@@ -22,13 +21,18 @@ export default function LogoutButton({ csrfToken }) {
             });
 
             if (response.ok) {
+                // Clear client-side storage
+                sessionStorage.clear();
+                localStorage.clear();
+
                 // Redirect to login page on successful logout
-                router.push('/login?logout=true');
+                window.location.replace('/login?logout=true');
             } else {
                 const data = await response.json();
                 console.error('Logout failed:', data.error);
+                
                 // Still redirect on error to be safe
-                router.push('/login');
+                window.location.replace('/login');
             }
         } catch (error) {
             console.error('Logout error:', error);

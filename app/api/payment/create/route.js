@@ -122,7 +122,7 @@ export async function POST(request) {
                 referenceNumber: payment.referenceNumber,
                 amount: payment.amount,
                 currency: payment.currency,
-                recipientName: payment.recipentName,
+                recipientName: payment.recipientName,
                 status: payment.status,
                 createdAt: payment.createdAt
             }
@@ -136,9 +136,7 @@ export async function POST(request) {
         return response;
     }
     catch(error){
-        console.error('Payment creation error:', error);
-
-        // DEBUG ERRORS REMOVE LATER
+        console.error('Payment creation failed.');
 
         // Handle duplicate payment IDs (rare but possible)
         if (error.code === 11000) {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getSession, validateCsrfToken, clearSessionCookie } from '../../../../lib/auth/session.js';
 
 export async function POST(request) {
@@ -27,10 +28,21 @@ export async function POST(request) {
         }
 
         // Clear session cookie
-        const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
-        clearSessionCookie(response);
+        const cookieStore = await cookies();
+        cookieStore.delete('session-token');
+        cookieStore.delete('csrf-token');
 
-        return response;
+        return NextResponse.json(
+            { message: 'Logged out successfully' },
+            {
+                status: 200,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            }
+        );
     } catch (error) {
         console.error('Logout error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
