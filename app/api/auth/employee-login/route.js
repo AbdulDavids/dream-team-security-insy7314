@@ -71,7 +71,7 @@ export async function POST(request) {
         const now = Math.floor(Date.now() / 1000);
         
         const sessionPayload = {
-            _id: employee._id.toString(),
+            userId: employee._id.toString(),
             userName: employee.employeeId,
             fullName: employee.fullName,
             role: employee.role,
