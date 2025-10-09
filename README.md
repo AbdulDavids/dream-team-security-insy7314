@@ -26,6 +26,7 @@ This application is a secure payment processing platform that allows employees t
 - Real-time HTTPS/TLS status indicators
 - Input sanitization and validation
 - Session management
+- Rate limiting
 - CSRF protection
 - Security headers implementation
 
@@ -110,12 +111,6 @@ https://github.com/user-attachments/assets/f860c434-7fb0-46f7-af29-dff2e83464fe
 ```
 Employee ID: EMP001
 Password:    Password123!
-```
-
-### Admin Account
-```
-Employee ID: ADMIN001
-Password:    AdminPass123!
 ```
 
 > **Note:** These are demo credentials for development only. Never use default credentials in production.
