@@ -43,6 +43,7 @@ export default async function EmployeeDashboard() {
 
     const { user, csrfToken } = session;
 
+    // Used Claude to help create and style the UI
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}

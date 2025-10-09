@@ -110,6 +110,7 @@ export default function RecentPayments({ csrfToken }) {
         );
     }
 
+    // Used Claude to help create and style the UI
     return (
         <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">

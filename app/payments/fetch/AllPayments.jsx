@@ -138,6 +138,7 @@ export default function AllPayments({ csrfToken, userName }) {
         );
     }
 
+    // Used Claude to help create and style the UI
     return (
         <div className="space-y-6">
             {/* Stats Cards */}
