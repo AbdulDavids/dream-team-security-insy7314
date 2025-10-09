@@ -30,8 +30,8 @@ const nextConfig = {
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "object-src 'none'",
-              "upgrade-insecure-requests",      // ← NEW: Force HTTPS
-              "block-all-mixed-content"     // ← NEW: Block HTTP content
+              "upgrade-insecure-requests",      // Force HTTPS
+              "block-all-mixed-content"     // Block HTTP content
             ].join('; ')
           },
           // Additional security headers

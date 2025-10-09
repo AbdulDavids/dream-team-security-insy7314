@@ -11,11 +11,11 @@ export async function GET() {
             message: 'CSRF token generated'
         });
 
-        // Set CSRF token in cookie (accessible to JavaScript for forms)
+        // Set CSRF token in cookie 
         const csrfCookieOptions = [
             `csrf-token=${csrfToken}`,
             'Path=/',
-            'Max-Age=1800', // 30 minutes - enough for login/register process
+            'Max-Age=1800', 
             'SameSite=Strict',
             'Secure'
             // No HttpOnly - forms need access

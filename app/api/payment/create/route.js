@@ -62,7 +62,7 @@ export async function POST(request) {
             paymentProvider: sanitizeAndValidate(paymentProvider, 'paymentProvider'),
             recipientName: sanitizeAndValidate(recipientName, 'recipientName'),
             recipientBankName: sanitizeAndValidate(recipientBankName, 'recipientBankName'),
-            accountNumber: sanitizeAndValidate(recipientAccountNumber.toString().toUpperCase(), 'accountNumberOrIban'), //CHECKK
+            accountNumber: sanitizeAndValidate(recipientAccountNumber.toString().toUpperCase(), 'accountNumberOrIban'),
             swiftCode: sanitizeAndValidate(swiftCode.toString().toUpperCase(), 'swiftCode')
         };
 
@@ -138,7 +138,7 @@ export async function POST(request) {
     catch(error){
         console.error('Payment creation failed.');
 
-        // Handle duplicate payment IDs (rare but possible)
+        // Handle duplicate payment IDs
         if (error.code === 11000) {
             return NextResponse.json(
                 { error: 'Payment reference conflict. Please try again.' },
