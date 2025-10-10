@@ -2,6 +2,13 @@
 
 A secure payment processing system built with Next.js, demonstrating industry-standard security practices including HTTPS/TLS encryption, input validation, authentication, and protection against common web vulnerabilities.
 
+> [!NOTE]
+> **Why Next.js?**
+> This project uses Next.js as its framework, which is built on top of Node.js and runs on the Node.js runtime. Next.js satisfies the POE requirement to use Node.js, as it leverages Node.js for server-side rendering, API routes, and middleware execution. The framework choice does not conflict with the Node.js requirement—it simply provides an organized structure and additional features while maintaining Node.js as the underlying runtime environment.
+>
+> **TLS Implementation:**
+> For local development, we provide a custom HTTPS server with self-signed certificates (see "Getting Started" section below). In production, the application is deployed on Vercel, which automatically provides industry-standard TLS/HTTPS certificates for all deployments. This satisfies the TLS requirement through Vercel's built-in security infrastructure.
+
 ## Live Demo
 
 🔗 **Deployed on Vercel:** [https://dream-team-security-insy7314.vercel.app](https://dream-team-security-insy7314.vercel.app)
