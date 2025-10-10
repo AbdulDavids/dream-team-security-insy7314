@@ -13,6 +13,10 @@ A secure payment processing system built with Next.js, demonstrating industry-st
 
 🔗 **Deployed on Vercel:** [https://dream-team-security-insy7314.vercel.app](https://dream-team-security-insy7314.vercel.app)
 
+## YouTube Demo Video
+
+🔗 **Link:** [https://youtu.be/rmkpyHoozxY?si=gzrOoTytDSuZFCCN](https://youtu.be/rmkpyHoozxY?si=gzrOoTytDSuZFCCN)
+
 ## Team Members
 
 | Name | Student Number |
