@@ -65,6 +65,7 @@ cp .env-example .env.local
 Then edit `.env.local` and add your values:
 - `ATLAS_URI`: Your MongoDB Atlas connection string
 - `SESSION_SECRET`: A secure random string for session encryption
+- `EMPLOYEE_DEFAULT_PASSWORD`: The password assigned to the default, seeded employee user (ensure it meets password rules e.g Password123!)  
 
 ### Development Server
 
