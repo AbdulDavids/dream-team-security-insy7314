@@ -204,6 +204,7 @@ export default function CreatePaymentForm({csrfToken, userName}){
         }).format(amount);
     };
 
+    // Used Claude to help create and style the UI
     return (
          <div className="bg-white shadow rounded-lg">
             {/* Progress Steps */}
