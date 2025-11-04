@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from '../../../../lib/db/connection.js';
 import Payment from '../../../../lib/db/models/payment.js';
+import { encryptField } from '../../../../lib/security/fieldEncryption.js';
 import { sanitizeAndValidate, validateAmount } from '../../../../lib/security/validation.js';
 import { getSession, validateCsrfToken, updateSessionActivity } from "../../../../lib/auth/session";
 
@@ -104,7 +105,8 @@ export async function POST(request) {
             paymentProvider: 'SWIFT',
             recipientName: validationResults.recipientName.sanitized,
             recipientBankName: validationResults.recipientBankName.sanitized,
-            recipientAccountNumber: validationResults.accountNumber.sanitized,
+            // Encrypt account numbers at rest when a FIELD_ENC_KEY is configured.
+            recipientAccountNumber: encryptField(validationResults.accountNumber.sanitized),
             swiftCode: validationResults.swiftCode.sanitized,
             reference: reference || '',
             status: 'pending',

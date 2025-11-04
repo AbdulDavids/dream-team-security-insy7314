@@ -1,9 +1,20 @@
+// RecentPayments client component
+// Purpose: fetch and render the user's recent payment activity in a compact
+// list used on the user's dashboard. Responsibilities:
+// - fetch payments from the server using the session cookie
+// - provide an acknowledge action that marks verified payments as
+//   acknowledged (persisted server-side) so they are hidden from the
+//   recent view but remain visible in the full history
+// - expose simple loading/error states suitable for server-rendered pages
+// Note: this component expects a server-issued CSRF token prop to be
+// supplied when making mutating requests.
 'use client';
 
 import { useState, useEffect } from 'react';
 
 export default function RecentPayments({ csrfToken }) {
     const [payments, setPayments] = useState([]);
+    const [ackInProgress, setAckInProgress] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -33,6 +44,46 @@ export default function RecentPayments({ csrfToken }) {
             setError('Network error. Please try again.');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // acknowledgePayment - marks a verified payment as acknowledged for the
+    // current user. This call is persisted server-side so the payment will be
+    // excluded from the dashboard (recent) view on subsequent loads while still
+    // remaining visible in the full history (View All Payments).
+    //
+    // The API requires the session cookie and a valid CSRF token (sent via
+    // the 'x-csrf-token' header). On success we optimistically remove the
+    // payment from the local state and then re-fetch to ensure consistency.
+    const acknowledgePayment = async (paymentId) => {
+        setAckInProgress(paymentId);
+        try {
+            const res = await fetch('/api/payment/acknowledge', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': csrfToken || ''
+                },
+                body: JSON.stringify({ paymentId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                // Remove locally then re-fetch the recent list to ensure the
+                // server-side acknowledged flag is reflected in the UI.
+                setPayments(prev => prev.filter(p => p.paymentId !== paymentId));
+                await fetchPayments();
+            } else {
+                console.error('Acknowledge failed:', data.error || data);
+                alert(data.error || 'Failed to acknowledge payment');
+            }
+        } catch (err) {
+            console.error('Network error acknowledging payment:', err);
+            alert('Network error. Please try again.');
+        } finally {
+            setAckInProgress(null);
         }
     };
 
@@ -147,13 +198,27 @@ export default function RecentPayments({ csrfToken }) {
                                                 <p className="text-sm font-medium text-gray-900 truncate">
                                                     {payment.recipientName}
                                                 </p>
-                                                <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(payment.status)}`}>
-                                                    {payment.status}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(payment.status)}`}>
+                                                        {payment.status}
+                                                    </span>
+                                                    {payment.status === 'verified' && !payment.acknowledged && (
+                                                        <button
+                                                            onClick={() => acknowledgePayment(payment.paymentId)}
+                                                            disabled={ackInProgress === payment.paymentId}
+                                                            className={`ml-2 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 ${ackInProgress === payment.paymentId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        >
+                                                            {ackInProgress === payment.paymentId ? 'Acknowledging...' : 'Acknowledge'}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className="text-sm text-gray-500 truncate mt-1">
                                                 {payment.recipientBankName}
                                             </p>
+                                            {payment.recipientAccountNumberMasked && (
+                                                <p className="text-sm text-gray-400 mt-1">Acct: {payment.recipientAccountNumberMasked}</p>
+                                            )}
                                             <div className="flex items-center mt-2 text-xs text-gray-400">
                                                 <span>{formatDate(payment.createdAt)}</span>
                                                 <span className="mx-2">•</span>
@@ -165,7 +230,7 @@ export default function RecentPayments({ csrfToken }) {
                                                 {formatCurrency(payment.amount, payment.currency)}
                                             </p>
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {payment.swiftCode}
+                                                {payment.swiftCodeMasked || payment.swiftCode || '-'}
                                             </p>
                                         </div>
                                     </div>
