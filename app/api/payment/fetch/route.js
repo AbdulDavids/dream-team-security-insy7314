@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '../../../../lib/db/connection.js';
 import Payment from '../../../../lib/db/models/payment.js';
 import { getSession } from '../../../../lib/auth/session.js';
+import { decryptField } from '../../../../lib/security/fieldEncryption.js';
+import { maskAccountNumber, maskSwift } from '../../../../lib/security/masking.js';
 
 export async function GET(request) {
     try {
@@ -30,8 +32,17 @@ export async function GET(request) {
 
         await dbConnect();
 
-        // Buil query
+        // Build base query - always filter by current user's id
         const query = { userId: session.user.userId };
+
+        // If the client is requesting the recent/dashboard view (all !== true),
+        // exclude payments that the user has already "acknowledged". This keeps
+        // acknowledged payments out of the quick recent dashboard while allowing
+        // them to remain visible when the client explicitly requests all=true
+        // (history / view all payments).
+        if (!all) {
+            query.acknowledged = { $ne: true };
+        }
 
         // Fetch payments for user
         let paymentsQuery = Payment.find(query)
@@ -44,6 +55,23 @@ export async function GET(request) {
         }
 
         const payments = await paymentsQuery.lean();
+
+        // Decrypt PII fields if field-level encryption is used and mask them
+        // for user-facing responses. We intentionally do NOT return raw
+        // account numbers to the client; instead return masked values.
+        for (const p of payments) {
+            if (p.recipientAccountNumber) {
+                const decrypted = decryptField(p.recipientAccountNumber);
+                p.recipientAccountNumberMasked = maskAccountNumber(decrypted);
+                // remove the raw encrypted value from the API output
+                delete p.recipientAccountNumber;
+            }
+            if (p.swiftCode) {
+                p.swiftCodeMasked = maskSwift(p.swiftCode);
+                // keep full swiftCode server-side but return masked to user
+                delete p.swiftCode;
+            }
+        }
 
         // Get total count
         const totalCount = await Payment.countDocuments(query);

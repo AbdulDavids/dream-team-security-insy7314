@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import dbConnect from '../../../../lib/db/connection.js';
 import Employee from '../../../../lib/db/models/employee.js';
+import Audit from '../../../../lib/db/models/audit.js';
 import { verifyPassword } from '../../../../lib/auth/password.js';
 import { sanitizeAndValidate } from '../../../../lib/security/validation.js';
 import { rotateSession, validateCsrfTokenForAuth } from '../../../../lib/auth/session.js';
+import rateLimiter from '../../../../lib/security/rateLimiter.js';
 import { signToken } from '../../../../lib/auth/jwt.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,6 +17,13 @@ const SESSION_CONFIG = {
 
 export async function POST(request) {
     try {
+
+        // Rate limit login attempts to mitigate brute-force against employee
+        // credentials. Uses the in-repo NextJSRateLimiter implementation.
+        const rl = rateLimiter.checkRateLimit(request);
+        if (!rl.success) {
+            return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter || 60) } });
+        }
 
         // Validate CSRF token
         if (!validateCsrfTokenForAuth(request)) {
@@ -102,6 +111,24 @@ export async function POST(request) {
             path: '/',
             maxAge: SESSION_CONFIG.ABSOLUTE_TIMEOUT
         });
+
+                        // Record audit of employee login (non-blocking)
+                        // We create a small audit record for each successful employee login so
+                        // administrators can later review who accessed the system and when.
+                        // The audit write is intentionally non-blocking to avoid preventing
+                        // the login flow in case the audit service temporarily fails.
+                        try {
+                            const created = await Audit.create({
+                                employeeId: employee._id,
+                                employeeIdentifier: employee.employeeId,
+                                action: 'login',
+                                details: { employeeId: employee.employeeId }
+                            });
+                            // Export audit to sink as well (non-blocking)
+                            import('../../../../lib/security/auditSink.js').then(m => m.sinkAudit(created)).catch(() => {});
+                        } catch (auditErr) {
+                            console.error('Audit log error (employee login):', auditErr);
+                        }
         
         return NextResponse.json({
             message: 'Employee Login successful',
