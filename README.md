@@ -316,6 +316,26 @@ Implemented via `next.config.js` and middleware:
 - Secure credential storage (environment variables)
 - Regular data validation
 
+## Part 3 Changelog
+
+### PR #21 - Employee Branch Enhancements
+
+**Changes:**
+- Added re-authorization timer for employee sessions
+- Implemented audit logging system (logs appear in terminal)
+- Enhanced verification steps in Employee class for payment processing
+- Tracks which employee logged in and which payments they verified
+
+**CI/CD & Quality:**
+- Integrated CircleCI pipeline (`install` → `quality` → `build`)
+- Added SonarQube for static code analysis and security scanning
+- Performance monitoring via CircleCI dashboard
+
+**Notes:**
+- Audit logs provide compliance trail for payment operations
+- Re-authorization enforces periodic security checks during active sessions
+- All security events are now logged with employee attribution
+
 ## Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
