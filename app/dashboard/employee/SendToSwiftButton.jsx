@@ -143,9 +143,18 @@ export default function SendToSwiftButton({ paymentId, csrfToken, amount, needsR
           <div className="fixed inset-0 bg-black/40" onClick={closeModal} />
           <form ref={modalRef} role="dialog" aria-modal="true" aria-labelledby={`send-dialog-${paymentId}`} onSubmit={handleSend} className="relative bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6">
       <h3 className="text-lg font-medium text-gray-900 mb-2">Send Payment to SWIFT</h3>
-      {/* Use explicit trimmed sentence and ensure wrapping so the copy fits
-        inside the modal container on narrow screens. `break-words` +
-        `whitespace-normal` allow the sentence to wrap without overflow. */}
+      {/*
+        Explanation for maintainers:
+        - The UI copy is intentionally trimmed to a single, explicit sentence
+          so operators immediately understand the consequence of the action
+          without extra noise.
+        - We use `break-words` and `whitespace-normal` to ensure the sentence
+          wraps gracefully inside the modal on narrow screens and does not
+          overflow the dialog box. This keeps the modal compact and avoids
+          layout breakage when translations or longer currencies are used.
+        - If you change this sentence in future, keep it short and avoid
+          including secrets or dynamic data in the UI copy.
+      */}
       <p className="text-sm text-gray-500 mb-4 break-words whitespace-normal">This action will transmit the verified payment to SWIFT</p>
 
             {needsReauth && (

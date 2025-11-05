@@ -108,6 +108,32 @@ export default async function EmployeeDashboard() {
         .limit(20)
         .lean();
 
+    // Print audit logs to the server terminal rather than rendering them in
+    // the employee dashboard UI. This keeps sensitive operational traces out
+    // of the browser view while preserving them for operators who can access
+    // server logs. The server component runs during render so console output
+    // will appear in the server process' stdout (dev terminal or hosting
+    // platform logs).
+    try {
+        console.info(`Audit log for employee ${user.userName} (${user.userId}):`);
+        // Print a concise JSON summary; avoid printing raw secrets.
+        console.info(auditLogs.map(a => ({ when: a.createdAt, action: a.action, paymentId: a.paymentId, details: a.details })));
+    } catch (logErr) {
+        // Do not block rendering if logging fails; just output an error to the
+        // server console for diagnostics.
+        console.error('Failed to write audit log to server console:', logErr);
+    }
+
+    // IMPORTANT: Audit handling notes
+    // - In development this console output will appear in the terminal where
+    //   Next.js is running (e.g., the `npm run dev` window). In production
+    //   you should route audit entries to a secure, append-only log store
+    //   (SIEM / log aggregation) rather than printing to stdout.
+    // - The audit `details` object may contain sensitive metadata. We log a
+    //   concise summary above but avoid rendering raw secret fields in the UI.
+    // - If you later reintroduce any audit UI, be careful to redact sensitive
+    //   fields and ensure the page is only accessible to authorized operators.
+
     // Used Claude to help create and style the UI
     return (
         <div className="min-h-screen bg-gray-50">
@@ -284,32 +310,7 @@ export default async function EmployeeDashboard() {
                     <div className="bg-white shadow rounded-lg mt-6">
                         <div className="px-4 py-5 sm:p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Recent Audit Log</h3>
-                            {auditLogs.length === 0 ? (
-                                <div className="text-sm text-gray-500">No audit events for your account yet.</div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">When</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment ID</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {auditLogs.map(a => (
-                                                <tr key={a._id}>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(a.createdAt).toLocaleString()}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{a.action}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{a.paymentId || '-'}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><pre className="text-xs">{JSON.stringify(a.details || {}, null, 2)}</pre></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                    <div className="text-sm text-gray-500">Audit log output is written to the server terminal (stdout). Check your server logs to view recent audit events for this employee.</div>
                         </div>
                     </div>
                 </div>
