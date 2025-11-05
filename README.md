@@ -1,5 +1,8 @@
 # Dream Team Security - INSY7314 Payment Processing System
 
+> [!NOTE]
+> **Part 3 Updates:** See the [Part 3 Changelog](#part-3-changelog) for the latest enhancements including employee authentication improvements, audit logging, CircleCI/SonarQube integration, and OWASP ZAP security testing.
+
 A secure payment processing system built with Next.js, demonstrating industry-standard security practices including HTTPS/TLS encryption, input validation, authentication, and protection against common web vulnerabilities.
 
 > [!NOTE]
@@ -315,6 +318,30 @@ Implemented via `next.config.js` and middleware:
 - Prepared statements for queries
 - Secure credential storage (environment variables)
 - Regular data validation
+
+## Part 3 Changelog
+
+### PR #21 - Employee Branch Enhancements
+
+**Changes:**
+- Added re-authorization timer for employee sessions
+- Implemented audit logging system (logs appear in terminal)
+- Enhanced verification steps in Employee class for payment processing
+- Tracks which employee logged in and which payments they verified
+
+**CI/CD & Quality:**
+- Integrated CircleCI pipeline (`install` → `quality` → `build`)
+- Added SonarQube for static code analysis and security scanning
+- Performance monitoring via CircleCI dashboard
+
+**Security Testing:**
+- OWASP ZAP security scan report: [2025-11-05-ZAP-Report-Dream-Team-Security.pdf](docs/2025-11-05-ZAP-Report-Dream-Team-Security.pdf)
+- Automated penetration testing and vulnerability assessment
+
+**Notes:**
+- Audit logs provide compliance trail for payment operations
+- Re-authorization enforces periodic security checks during active sessions
+- All security events are now logged with employee attribution
 
 ## Resources
 
