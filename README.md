@@ -1,5 +1,8 @@
 # Dream Team Security - INSY7314 Payment Processing System
 
+> [!NOTE]
+> **Part 3 Updates:** See the [Part 3 Changelog](#part-3-changelog) for the latest enhancements including employee authentication improvements, audit logging, CircleCI/SonarQube integration, and OWASP ZAP security testing.
+
 A secure payment processing system built with Next.js, demonstrating industry-standard security practices including HTTPS/TLS encryption, input validation, authentication, and protection against common web vulnerabilities.
 
 > [!NOTE]
