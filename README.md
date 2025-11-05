@@ -331,6 +331,10 @@ Implemented via `next.config.js` and middleware:
 - Added SonarQube for static code analysis and security scanning
 - Performance monitoring via CircleCI dashboard
 
+**Security Testing:**
+- OWASP ZAP security scan report: [2025-11-05-ZAP-Report-Dream-Team-Security.pdf](docs/2025-11-05-ZAP-Report-Dream-Team-Security.pdf)
+- Automated penetration testing and vulnerability assessment
+
 **Notes:**
 - Audit logs provide compliance trail for payment operations
 - Re-authorization enforces periodic security checks during active sessions
