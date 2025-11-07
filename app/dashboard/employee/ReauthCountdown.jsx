@@ -48,7 +48,7 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
     };
   }, []);
 
-  //This separate effect gives another layerof robustness.
+  // This separate effect gives another layer of robustness.
   useEffect(() => {
     function onExpiredGlobal() {
       setExpiry(null);
