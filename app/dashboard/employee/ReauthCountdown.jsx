@@ -21,7 +21,7 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
     }
   }, [lastReauthAt, reauthWindowSeconds]);
 
-  // Listen for reauth-success events so header updates live without reload
+  // Listen for reauth-success and reauth-expired events
   useEffect(() => {
     function onReauth(e) {
       try {
@@ -35,45 +35,19 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
         // ignore
       }
     }
-    window.addEventListener('reauth-success', onReauth);
-    // Listen for explicit expiry immediately clear the timer and remove display.
+
     function onExpired() {
       setExpiry(null);
       setRemaining('');
     }
+
+    window.addEventListener('reauth-success', onReauth);
     window.addEventListener('reauth-expired', onExpired);
+
     return () => {
       window.removeEventListener('reauth-success', onReauth);
       window.removeEventListener('reauth-expired', onExpired);
     };
-  }, []);
-
-  // This separate effect gives another layer of robustness.
-  useEffect(() => {
-    function onExpiredGlobal() {
-      setExpiry(null);
-      setRemaining('');
-    }
-    window.addEventListener('reauth-expired', onExpiredGlobal);
-    return () => window.removeEventListener('reauth-expired', onExpiredGlobal);
-  }, []);
-
-  // Listen for global reauth events so the header countdown updates
-  useEffect(() => {
-    function onReauth(e) {
-      try {
-        const { lastReauthAt: lr, reauthWindowSeconds: rws } = e.detail || {};
-        if (!lr || !rws) return;
-        const last = new Date(lr).getTime();
-        const eTime = last + Number(rws) * 1000;
-        if (isNaN(eTime) || eTime <= Date.now()) return;
-        setExpiry(eTime);
-      } catch (err) {
-        // ignore
-      }
-    }
-    window.addEventListener('reauth-success', onReauth);
-    return () => window.removeEventListener('reauth-success', onReauth);
   }, []);
 
   useEffect(() => {

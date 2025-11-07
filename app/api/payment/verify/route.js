@@ -21,6 +21,25 @@ import { verifyPassword } from '../../../../lib/auth/password.js';
 import { rotateSession } from '../../../../lib/auth/session.js';
 import { requireReauthIfNeeded } from '../../../../lib/security/reauth.js';
 
+// Helper to create audit entries and send to sink (best-effort)
+async function createAuditEntry({ employeeId, employeeIdentifier, action, paymentId, details }) {
+  try {
+    const auditEntry = await Audit.create({
+      employeeId,
+      employeeIdentifier,
+      action,
+      paymentId,
+      details
+    });
+    // Export to the append-only audit sink (best-effort).
+    // Audit sink failures are logged but do not block the user operation.
+    sinkAudit(auditEntry).catch(() => {});
+  } catch (auditErr) {
+    // Log audit write failures for monitoring/alerting.
+    console.error(`Failed to write ${action} audit:`, auditErr);
+  }
+}
+
 export async function POST(request) {
   try {
     // Rate limit check to protect the verify endpoint from abuse/automation
@@ -74,40 +93,27 @@ export async function POST(request) {
   await requireReauthIfNeeded({ sessionUser: session.user, amount: payment.amount, reauthPassword, totpCode });
 
       // Record a re-auth success audit entry.
-      try {
-        // To avoid storing sensitive values (passwords or TOTP codes), we only record
-        // the method of re-authentication (e.g., 'password' or 'recent-window') and whether
-        // a TOTP code was provided, but never the actual password or TOTP code themselves.
-        const reauthAudit = await Audit.create({
-          employeeId: session.user.userId,
-          employeeIdentifier: session.user.userName || null,
-          action: 'reauth_success',
-          paymentId: payment.paymentId,
-          details: { method: reauthPassword ? 'password' : 'recent-window', totpProvided: Boolean(totpCode) }
-        });
-        // Export to the append-only audit sink (best-effort).
-        //  Audit sink failures are logged but do not block the user operation.
-        sinkAudit(reauthAudit).catch(() => {});
-      } catch (auditErr) {
-        // Log audit write failures for monitoring/alerting.
-        console.error('Failed to write reauth success audit:', auditErr);
-      }
+      // To avoid storing sensitive values (passwords or TOTP codes), we only record
+      // the method of re-authentication (e.g., 'password' or 'recent-window') and whether
+      // a TOTP code was provided, but never the actual password or TOTP code themselves.
+      await createAuditEntry({
+        employeeId: session.user.userId,
+        employeeIdentifier: session.user.userName || null,
+        action: 'reauth_success',
+        paymentId: payment.paymentId,
+        details: { method: reauthPassword ? 'password' : 'recent-window', totpProvided: Boolean(totpCode) }
+      });
     } catch (reauthErr) {
       // On failure, create a reauth_failure audit.
-      try {
-        const failAudit = await Audit.create({
-          employeeId: session.user.userId,
-          employeeIdentifier: session.user.userName || null,
-          action: 'reauth_failure',
-          paymentId: payment.paymentId,
-          details: { error: reauthErr.message || 'reauth_failed' }
-        });
-        sinkAudit(failAudit).catch(() => {});
-      } catch (auditErr) {
-        console.error('Failed to write reauth failure audit:', auditErr);
-      }
+      await createAuditEntry({
+        employeeId: session.user.userId,
+        employeeIdentifier: session.user.userName || null,
+        action: 'reauth_failure',
+        paymentId: payment.paymentId,
+        details: { error: reauthErr.message || 'reauth_failed' }
+      });
 
-      // Surface a friendly error message to the client 
+      // Surface a friendly error message to the client
       return NextResponse.json({ error: reauthErr.message || 'Re-authentication required' }, { status: reauthErr.status || 401 });
     }
 
@@ -140,23 +146,14 @@ export async function POST(request) {
     // Record audit log for verification.
     // We write a concise entry describing the employee, the action and whether the optional SWIFT check matched.
     // The audit intentionally contains minimal metadata (no secrets).
-    try {
-      await dbConnect();
-      const created = await Audit.create({
-        employeeId: session.user.userId,
-        employeeIdentifier: session.user.userName || null,
-        action: 'verify',
-        paymentId: payment.paymentId,
-        details: { swiftMatch }
-      });
-      // Non-blocking export to append-only audit sink (signed JSONL).
-      // The sink is best-effort; failures are logged for alerting.
-      sinkAudit(created).catch(() => {});
-    } catch (auditErr) {
-      // Log failures.
-      // Monitoring should alert on repeated failures.
-      console.error('Audit log error (verify):', auditErr);
-    }
+    await dbConnect();
+    await createAuditEntry({
+      employeeId: session.user.userId,
+      employeeIdentifier: session.user.userName || null,
+      action: 'verify',
+      paymentId: payment.paymentId,
+      details: { swiftMatch }
+    });
 
     return NextResponse.json({ message: 'Payment verified' }, { status: 200 });
   } catch (err) {
