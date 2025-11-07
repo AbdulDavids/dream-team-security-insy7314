@@ -75,7 +75,9 @@ export async function POST(request) {
 
       // Record a re-auth success audit entry.
       try {
-        // intentionally avoid storing sensitive values (passwords or TOTP codes)
+        // To avoid storing sensitive values (passwords or TOTP codes), we only record
+        // the method of re-authentication (e.g., 'password' or 'recent-window') and whether
+        // a TOTP code was provided, but never the actual password or TOTP code themselves.
         const reauthAudit = await Audit.create({
           employeeId: session.user.userId,
           employeeIdentifier: session.user.userName || null,
