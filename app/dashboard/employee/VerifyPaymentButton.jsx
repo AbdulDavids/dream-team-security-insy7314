@@ -296,7 +296,6 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
               maxLength={6}
             />
 
-            {}
 
             {reauthError && <p className="mt-2 text-sm text-rose-600">{reauthError}</p>}
 
