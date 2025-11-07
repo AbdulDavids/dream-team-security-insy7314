@@ -353,7 +353,6 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
               </div>
             )}
 
-            {}
             {needsReauth && !reauthDone && (
               <p className="mt-4 text-sm text-yellow-700">You must re-authenticate first; please click "Verify" to open the re-auth dialog.</p>
             )}
