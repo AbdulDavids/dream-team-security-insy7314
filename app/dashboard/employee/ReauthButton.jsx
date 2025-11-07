@@ -41,7 +41,6 @@ export default function ReauthButton({ csrfToken, lastReauthAt = null, reauthWin
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Initialize done flag from server-provided lastReauthAt/window. We
   // This component will listen for 'reauth-success' and 'reauth-expired' events to update
   useEffect(() => {
     try {
