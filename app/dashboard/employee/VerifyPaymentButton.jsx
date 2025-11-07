@@ -15,7 +15,7 @@ import { useState, useRef, useEffect } from 'react';
 //   that the server-rendered pending payments list is refreshed. Reloading
 //   keeps the server component simple; for a richer UX we could convert the
 //   pending table to a client component and update it without a full reload.
-export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, amount, needsReauth = false }) {
+export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, amount, needsReauth = false, lastReauthAt = null, reauthWindowSeconds = null }) {
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState(null);
@@ -32,11 +32,75 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   // re-enter credentials without mixing them into the confirmation form.
   const reauthModalRef = useRef(null);
   const [totpCode, setTotpCode] = useState('');
+  // Track whether a recent reauth has been performed. We keep this boolean
+  // so the per-row UI can hide the "Re-auth required" hint when the user
+  // has a recent reauth. The global countdown lives in the header.
   const [reauthDone, setReauthDone] = useState(false);
   const [reauthLoading, setReauthLoading] = useState(false);
   const [reauthError, setReauthError] = useState(null);
-  const [reauthExpiry, setReauthExpiry] = useState(null); // timestamp ms when reauth expires
-  const [reauthRemaining, setReauthRemaining] = useState(''); // human-friendly remaining time
+  
+
+  // Initialize reauthDone based on server-provided lastReauthAt/window so the
+  // per-row state is correct on first render (server props are authoritative
+  // for a fresh page load).
+  useEffect(() => {
+    try {
+      if (lastReauthAt && reauthWindowSeconds) {
+        const last = new Date(lastReauthAt).getTime();
+        const expiry = last + Number(reauthWindowSeconds) * 1000;
+        if (expiry > Date.now()) {
+          setReauthDone(true);
+          // Schedule clearing reauthDone when the window expires
+          const to = expiry - Date.now();
+          const id = setTimeout(() => setReauthDone(false), to);
+          return () => clearTimeout(id);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [lastReauthAt, reauthWindowSeconds]);
+
+  // Listen for a global `reauth-success` event so we can update local
+  // `reauthDone` state without requiring a full page reload. The header
+  // countdown component will also listen for this event and show the
+  // global timer.
+  useEffect(() => {
+    const timeouts = { ids: [] };
+    function onReauth(e) {
+      try {
+        const { lastReauthAt: lr, reauthWindowSeconds: rws } = e.detail || {};
+        if (!lr || !rws) return;
+        const last = new Date(lr).getTime();
+        const expiry = last + Number(rws) * 1000;
+        if (expiry > Date.now()) {
+          setReauthDone(true);
+          const to = expiry - Date.now();
+          const id = setTimeout(() => setReauthDone(false), to);
+          // store id so we can clear it if needed
+          timeouts.ids.push(id);
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    window.addEventListener('reauth-success', onReauth);
+    return () => {
+      window.removeEventListener('reauth-success', onReauth);
+      // clear any pending timeouts created by this listener
+      try { timeouts.ids.forEach(i => clearTimeout(i)); } catch (e) {}
+    };
+  }, []);
+
+  // Ensure we expire the per-row `reauthDone` immediately when a global
+  // `reauth-expired` event is dispatched (for example on logout).
+  useEffect(() => {
+    function onExpired() {
+      setReauthDone(false);
+    }
+    window.addEventListener('reauth-expired', onExpired);
+    return () => window.removeEventListener('reauth-expired', onExpired);
+  }, []);
 
   // Hook to install modal accessibility behaviors when each modal is shown.
   // We attach the same small focus-trap / Escape handler to both the
@@ -45,27 +109,10 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   useModalA11y(modalRef, showForm, handleCancel);
   useModalA11y(reauthModalRef, showReauth, handleReauthCancel);
 
-  // Countdown effect: when `reauthExpiry` is set we update the
-  // `reauthRemaining` display every second. When the expiry passes we
-  // clear the `reauthDone` flag so the UI returns to the pre-auth state.
-  useEffect(() => {
-    if (!reauthExpiry) return;
-    function update() {
-      const now = Date.now();
-      const diff = Math.max(0, Math.floor((reauthExpiry - now) / 1000));
-      const mm = Math.floor(diff / 60).toString().padStart(1, '0');
-      const ss = (diff % 60).toString().padStart(2, '0');
-      setReauthRemaining(`${mm}:${ss}`);
-      if (diff <= 0) {
-        setReauthDone(false);
-        setReauthExpiry(null);
-        setReauthRemaining('');
-      }
-    }
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [reauthExpiry]);
+  // The header `ReauthCountdown` component manages the live timer and
+  // broadcasts `reauth-success`/`reauth-expired` events. This component
+  // only tracks the boolean `reauthDone` and listens for those events so
+  // it doesn't need its own interval or timer state.
 
 // Developer note:
 // The reauth window is server-driven. When a successful re-auth occurs the
@@ -229,19 +276,15 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
       const data = await res.json();
       if (!res.ok) {
         setReauthError(data?.error || 'Re-authentication failed');
-      } else {
-        // Successful reauth: server returns lastReauthAt and window seconds
-        // so we can compute an expiry and show a countdown to the operator.
+        } else {
+        // Successful reauth: server returns lastReauthAt and window seconds.
+        // Emit a global event so header and other components update without
+        // a full page reload.
         try {
-          const last = data?.lastReauthAt ? new Date(data.lastReauthAt).getTime() : Date.now();
-          const windowSec = Number(data?.reauthWindowSeconds || process.env.REAUTH_WINDOW_SECONDS || 300);
-          const expiry = last + windowSec * 1000;
-          setReauthExpiry(expiry);
-          setReauthDone(true);
+          const payload = { lastReauthAt: data?.lastReauthAt || new Date().toISOString(), reauthWindowSeconds: Number(data?.reauthWindowSeconds || process.env.REAUTH_WINDOW_SECONDS || 300) };
+          window.dispatchEvent(new CustomEvent('reauth-success', { detail: payload }));
         } catch (err) {
-          // Fallback: mark as done without expiry info
-          setReauthDone(true);
-          setReauthExpiry(null);
+          // ignore dispatch errors
         }
         setShowReauth(false);
         // Proceed to SWIFT confirmation
@@ -273,16 +316,10 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
 
   return (
     <div>
-      {/* After a successful re-auth show a small validity indicator with
-          a countdown so the operator knows how long the reauth window
-          remains valid. */}
-      {reauthDone && reauthExpiry && (
-        <div className="mb-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-            Re-authenticated — valid for {reauthRemaining || '—'}
-          </span>
-        </div>
-      )}
+      {/* Per-row reauth indicators have been intentionally removed. The
+          global reauth countdown is shown only in the page header to
+          avoid duplicate timers and reduce visual noise in the payment
+          table. */}
       {/* Visible cue for operators when step-up re-auth is required. This
           shows a small badge and an explicit "Re-authenticate" button so
           the operator can proactively perform the credential step before
@@ -398,6 +435,15 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
               autoFocus
               maxLength={11}
             />
+
+            {/* Keep the expected SWIFT code visible (muted) so the operator can
+                see the target value while typing. The placeholder disappears
+                when typing; this persistent hint prevents that usability issue. */}
+            {swiftCode && (
+              <div className="mt-2 text-sm text-gray-400 break-words">
+                Expected SWIFT: <span className="font-mono text-gray-500">{swiftCode}</span>
+              </div>
+            )}
 
             {/* In the two-step flow, we perform re-authentication first. If
                 `reauthDone` is false and `needsReauth` is true, the

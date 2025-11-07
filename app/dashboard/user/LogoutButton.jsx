@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 export default function LogoutButton({ csrfToken }) {
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     const handleLogout = async () => {
         setIsLoading(true);
@@ -21,6 +22,19 @@ export default function LogoutButton({ csrfToken }) {
             });
 
             if (response.ok) {
+                // Mark global flag and notify other components that any reauth
+                // window should expire. The global flag helps components that
+                // check state in tight intervals or may miss the event during
+                // navigation.
+                try {
+                    window.__reauthExpired = true;
+                } catch (e) {}
+                try {
+                    window.dispatchEvent(new CustomEvent('reauth-expired'));
+                } catch (e) {
+                    // ignore
+                }
+
                 // Clear client-side storage
                 sessionStorage.clear();
                 localStorage.clear();
@@ -31,11 +45,15 @@ export default function LogoutButton({ csrfToken }) {
                 const data = await response.json();
                 console.error('Logout failed:', data.error);
                 
+                // Ensure reauth countdown is expired for any listening components
+                try { window.dispatchEvent(new CustomEvent('reauth-expired')); } catch (e) {}
                 // Still redirect on error to be safe
                 window.location.replace('/login');
             }
         } catch (error) {
             console.error('Logout error:', error);
+            // Ensure other components know the reauth window is over
+            try { window.dispatchEvent(new CustomEvent('reauth-expired')); } catch (e) {}
             // Still redirect on error to be safe
             router.push('/login');
         } finally {
