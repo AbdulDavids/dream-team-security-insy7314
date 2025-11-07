@@ -178,7 +178,6 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   // Perform a POST to the explicit reauth endpoint.
   // reauth checks credentials and updates lastReauthAt, returning the timestamp and reauthWindowSeconds for a countdown.
   // Only reauth_success or reauth_failure are logged—no raw credentials stored.
-  //This helper only triggers reauth
   setReauthLoading(true);
     try {
   const payload = { paymentId, reauthPassword };
