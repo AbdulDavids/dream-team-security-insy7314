@@ -2,14 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-export default function ReauthButton({ csrfToken }) {
+export default function ReauthButton({ csrfToken, lastReauthAt = null, reauthWindowSeconds = null }) {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
-  const [expiry, setExpiry] = useState(null);
-  const [remaining, setRemaining] = useState('');
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -43,24 +41,34 @@ export default function ReauthButton({ csrfToken }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
+  // This component will listen for 'reauth-success' and 'reauth-expired' events to update
   useEffect(() => {
-    if (!expiry) return;
-    function update() {
-      const now = Date.now();
-      const diff = Math.max(0, Math.floor((expiry - now) / 1000));
-      const mm = Math.floor(diff / 60).toString().padStart(1, '0');
-      const ss = (diff % 60).toString().padStart(2, '0');
-      setRemaining(`${mm}:${ss}`);
-      if (diff <= 0) {
-        setDone(false);
-        setExpiry(null);
-        setRemaining('');
+    try {
+      if (lastReauthAt && reauthWindowSeconds) {
+        const last = new Date(lastReauthAt).getTime();
+        const exp = last + Number(reauthWindowSeconds) * 1000;
+        if (exp > Date.now()) setDone(true);
       }
+    } catch (e) {
+      // ignore
     }
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [expiry]);
+  }, [lastReauthAt, reauthWindowSeconds]);
+
+  // Listen for global reauth events so we can toggle the button visibility  without setting intervals here.
+  useEffect(() => {
+    function onSuccess(e) {
+      setDone(true);
+    }
+    function onExpired() {
+      setDone(false);
+    }
+    window.addEventListener('reauth-success', onSuccess);
+    window.addEventListener('reauth-expired', onExpired);
+    return () => {
+      window.removeEventListener('reauth-success', onSuccess);
+      window.removeEventListener('reauth-expired', onExpired);
+    };
+  }, []);
 
   async function submit(e) {
     e?.preventDefault();
@@ -84,9 +92,14 @@ export default function ReauthButton({ csrfToken }) {
       } else {
         const last = data?.lastReauthAt ? new Date(data.lastReauthAt).getTime() : Date.now();
         const windowSec = Number(data?.reauthWindowSeconds || 300);
-        const exp = last + windowSec * 1000;
-        setExpiry(exp);
         setDone(true);
+        // Notify other UI components that a reauth just occurred (for countdowns, etc)
+        try {
+          const ev = new CustomEvent('reauth-success', { detail: { lastReauthAt: data?.lastReauthAt || new Date(last).toISOString(), reauthWindowSeconds: windowSec } });
+          window.dispatchEvent(ev);
+        } catch (e) {
+          // best-effort
+        }
         setOpen(false);
         setPassword('');
       }
@@ -99,16 +112,15 @@ export default function ReauthButton({ csrfToken }) {
 
   return (
     <div className="flex items-center gap-3">
-      {done && expiry && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Re-auth valid {remaining || '—'}</span>
+      {!done && (
+        <button
+          type="button"
+          onClick={() => { setOpen(true); setError(null); }}
+          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          Re-authenticate
+        </button>
       )}
-      <button
-        type="button"
-        onClick={() => { setOpen(true); setError(null); }}
-        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-      >
-        Re-authenticate
-      </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

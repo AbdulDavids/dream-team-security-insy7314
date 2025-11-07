@@ -16,12 +16,14 @@ import LogoutButton from '../user/LogoutButton.jsx';
 // Database helpers used server-side in this Next.js server component
 import dbConnect from '../../../lib/db/connection.js';
 import Payment from '../../../lib/db/models/payment.js';
+import Employee from '../../../lib/db/models/employee.js';
 import Audit from '../../../lib/db/models/audit.js';
 
 // Client-side component that triggers payment verification
 import VerifyPaymentButton from './VerifyPaymentButton.jsx';
 import SendToSwiftButton from './SendToSwiftButton.jsx';
 import ReauthButton from './ReauthButton.jsx';
+import ReauthCountdown from './ReauthCountdown.jsx';
 
 // Add dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic';
@@ -93,6 +95,14 @@ export default async function EmployeeDashboard() {
         .limit(10)
         .lean();
 
+    // Fetch the employee record to obtain last reauth info so the UI can
+    // display a persistent countdown after a successful reauth (even if the
+    // page is reloaded). This keeps the operator informed about how long
+    // the recent reauth remains valid.
+    const employeeRecord = await Employee.findById(user.userId).lean();
+    const lastReauthAt = employeeRecord?.lastReauthAt || null;
+    const reauthWindowSeconds = Number(process.env.REAUTH_WINDOW_SECONDS || 300);
+
     // Determine the server-side step-up threshold so the UI can present
     // a password field for high-value payments. The server remains
     // authoritative; this prop simply improves UX by showing the field
@@ -147,7 +157,10 @@ export default async function EmployeeDashboard() {
                             </h1>
                         </div>
                             <div className="flex items-center gap-3">
-                                <ReauthButton csrfToken={csrfToken} />
+                                <ReauthButton csrfToken={csrfToken} lastReauthAt={lastReauthAt} reauthWindowSeconds={reauthWindowSeconds} />
+                                {/* Show a persistent reauth countdown in the header so operators
+                                    always see how long their step-up auth remains valid. */}
+                                <ReauthCountdown lastReauthAt={lastReauthAt} reauthWindowSeconds={reauthWindowSeconds} />
                                 <LogoutButton csrfToken={csrfToken} />
                             </div>
                     </div>
@@ -282,21 +295,41 @@ export default async function EmployeeDashboard() {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {pendingPayments.map((p) => (
-                                                <tr key={p.paymentId}>
+                                                                                        {pendingPayments.map((p) => (
+                                                                                                <tr key={p.paymentId}>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{p.paymentId}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{p.amount} {p.currency}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{p.recipientName}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{p.swiftCode || '-'}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(p.createdAt).toLocaleString()}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center gap-2">
-                                                        {/* Pass payment amount to the client buttons so they can decide
-                                                            whether step-up authentication (reauth password) is required
-                                                            before submitting sensitive actions. The server enforces the
-                                                            threshold, but the UI can present a password field when
-                                                            the payment amount is high to collect it from the operator. */}
-                                                        <VerifyPaymentButton paymentId={p.paymentId} csrfToken={csrfToken} swiftCode={p.swiftCode} amount={p.amount} needsReauth={p.amount >= STEP_UP_THRESHOLD} />
-                                                        <SendToSwiftButton paymentId={p.paymentId} csrfToken={csrfToken} amount={p.amount} needsReauth={p.amount >= STEP_UP_THRESHOLD} />
+                                                                                                                {/* Render Verify only for pending payments. For already-
+                                                                                                                        verified items we show a static label so the Verify
+                                                                                                                        button does not reappear after the employee verifies. */}
+                                                                                                                                                                        {p.status === 'pending' ? (
+                                                                                                                    <VerifyPaymentButton
+                                                                                                                        paymentId={p.paymentId}
+                                                                                                                        csrfToken={csrfToken}
+                                                                                                                        swiftCode={p.swiftCode}
+                                                                                                                        amount={p.amount}
+                                                                                                                        needsReauth={p.amount >= STEP_UP_THRESHOLD}
+                                                                                                                        lastReauthAt={lastReauthAt}
+                                                                                                                        reauthWindowSeconds={reauthWindowSeconds}
+                                                                                                                    />
+                                                                                                                ) : (
+                                                                                                                    <span className="text-sm text-emerald-600">Verified</span>
+                                                                                                                )}
+
+                                                                                                                {/* Only show the Send button when the payment is VERIFIED.
+                                                                                                                        This keeps the UI consistent and prevents the operator
+                                                                                                                        from attempting a send before verification. The server
+                                                                                                                        still enforces this invariant as well. */}
+                                                                                                                {p.status === 'verified' ? (
+                                                                                                                    <SendToSwiftButton paymentId={p.paymentId} csrfToken={csrfToken} amount={p.amount} needsReauth={p.amount >= STEP_UP_THRESHOLD} />
+                                                                                                                ) : (
+                                                                                                                    <button disabled className="ml-2 inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-gray-300">Awaiting verification</button>
+                                                                                                                )}
+                                                        
                                                     </td>
                                                 </tr>
                                             ))}
