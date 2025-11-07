@@ -2,19 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// Client-side component for verifying a single payment.
-// Responsibilities and security notes:
-// - Expects `paymentId` and the server-issued `csrfToken` (from the server
-//   component). The CSRF token is sent in the `x-csrf-token` header using the
-//   double-submit cookie pattern implemented in this app.
-// - As an additional human-validation step, the component prompts the
-//   employee to re-enter/confirm the recipient SWIFT code. The entered value
-//   is sent to the server as `confirmSwift`; the server performs the
-//   authoritative comparison against the stored `payment.swiftCode`.
-// - On successful verification the component will reload the dashboard so
-//   that the server-rendered pending payments list is refreshed. Reloading
-//   keeps the server component simple; for a richer UX we could convert the
-//   pending table to a client component and update it without a full reload.
 export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, amount, needsReauth = false, lastReauthAt = null, reauthWindowSeconds = null }) {
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -27,9 +14,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   const [reauthPassword, setReauthPassword] = useState('');
   const inputRef = useRef(null);
   const modalRef = useRef(null);
-  // Ref for the re-authentication modal (separate from the SWIFT confirm modal)
-  // This modal is shown first in the two-step flow so the operator can
-  // re-enter credentials without mixing them into the confirmation form.
+  // This modal is shown first in the two-step flow so the operator can re-enter credentials without mixing them into the confirmation form.
   const reauthModalRef = useRef(null);
   const [totpCode, setTotpCode] = useState('');
   // Track whether a recent reauth has been performed. We keep this boolean
@@ -40,9 +25,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   const [reauthError, setReauthError] = useState(null);
   
 
-  // Initialize reauthDone based on server-provided lastReauthAt/window so the
-  // per-row state is correct on first render (server props are authoritative
-  // for a fresh page load).
+  // Initialize reauthDone based on server-provided lastReauthAt/window so the per-row state is correct on first render
   useEffect(() => {
     try {
       if (lastReauthAt && reauthWindowSeconds) {
@@ -62,9 +45,6 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   }, [lastReauthAt, reauthWindowSeconds]);
 
   // Listen for a global `reauth-success` event so we can update local
-  // `reauthDone` state without requiring a full page reload. The header
-  // countdown component will also listen for this event and show the
-  // global timer.
   useEffect(() => {
     const timeouts = { ids: [] };
     function onReauth(e) {
@@ -92,8 +72,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
     };
   }, []);
 
-  // Ensure we expire the per-row `reauthDone` immediately when a global
-  // `reauth-expired` event is dispatched (for example on logout).
+  // Ensure we expire the per-row reauthDone immediately when a global reauth-expired event is dispatched
   useEffect(() => {
     function onExpired() {
       setReauthDone(false);
@@ -103,37 +82,9 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
   }, []);
 
   // Hook to install modal accessibility behaviors when each modal is shown.
-  // We attach the same small focus-trap / Escape handler to both the
-  // SWIFT confirmation modal (`modalRef`) and the re-auth modal
-  // (`reauthModalRef`) so keyboard users can interact predictably.
   useModalA11y(modalRef, showForm, handleCancel);
   useModalA11y(reauthModalRef, showReauth, handleReauthCancel);
-
-  // The header `ReauthCountdown` component manages the live timer and
-  // broadcasts `reauth-success`/`reauth-expired` events. This component
-  // only tracks the boolean `reauthDone` and listens for those events so
-  // it doesn't need its own interval or timer state.
-
-// Developer note:
-// The reauth window is server-driven. When a successful re-auth occurs the
-// server returns `lastReauthAt` and a `reauthWindowSeconds` value. We compute
-// an expiry locally (last + window) and show a countdown so the operator
-// understands how long the step-up authentication remains valid. The server
-// remains authoritative: even if the client thinks reauth is valid, the
-// server may require credentials again if its window state changed or if
-// an operation's risk threshold increased.
-
-// Note: The modal accessibility helper above is intentionally small and
-// dependency-free. It covers the common cases (focus trap and Escape to
-// close). For production-grade accessibility and edge-case handling you
-// may prefer a well-tested library such as `focus-trap-react`.
-
-// Note: The modal accessibility helper above is intentionally small and
-// dependency-free. It covers the common cases (focus trap and Escape to
-// close). For production-grade accessibility and edge-case handling you
-// may prefer a well-tested library such as `focus-trap-react`.
  
-
   // Trigger verification request to server
   // Open the confirmation form instead of using a browser prompt
   function handleVerify() {
@@ -156,8 +107,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
     setError(null);
   }
 
-  // Client-side SWIFT format validation to catch obvious mistakes before
-  // making a network request. Server-side validation remains authoritative.
+  // Basic modal accessibility: trap focus and close on Escape
   const SWIFT_REGEX = /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/;
 
   // Submit the SWIFT confirmation to the server
@@ -168,31 +118,12 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
       return;
     }
 
-    // Basic client-side format check to ensure the operator didn't paste a
-    // very long/unexpected value that would break UI or always fail server
-    // validation. This improves UX by surfacing the problem immediately.
+    // Basic client-side SWIFT format validation
     if (!SWIFT_REGEX.test(formSwift.trim())) {
       setError('SWIFT code must be 8 or 11 characters (letters then digits).');
       return;
     }
-
-    // At this stage the client should have already performed re-auth when
-    // required (two-step flow). The SWIFT confirmation itself does not
-    // re-check the password here — the server will still enforce re-auth
-    // if the reauth window expired between steps.
-
-    // Mark loading and clear prior errors. The verify endpoint performs the
-    // authoritative check (including a server-side reauth requirement when
-    // appropriate), then transitions the payment to `verified` on success.
-    // Behavior notes:
-    // - The client only sends `confirmSwift`; any prior re-auth step is
-    //   performed separately via `/api/auth/reauth` and updates the
-    //   employee's `lastReauthAt` on the server.
-    // - If the server returns 401 with a reauth-related message we open the
-    //   reauth modal so the operator can complete credentials without losing context.
-    // - On successful verification we reload the page to refresh the server
-    //   rendered pending/verified list (the server decides which payments to
-    //   surface). This keeps the server-side rendering simple and authoritative.
+    // All client-side checks passed; proceed with the verify request
     setLoading(true);
     setError(null);
     try {
@@ -210,9 +141,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
 
       const data = await res.json();
       if (!res.ok) {
-        // Server may require explicit re-auth even if the client believed the
-        // session to be valid. Detect reauth prompts and show the reauth modal
-        // so the operator can provide credentials without losing context.
+        // Detect reauth prompts and show the reauth modal
         if (res.status === 401 && data?.error && /reauth/i.test(data.error)) {
           setShowForm(false);
           setShowReauth(true);
@@ -221,9 +150,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
         }
         setError(data?.error || 'Failed to verify payment');
       } else {
-        // Successful verify: update local state and refresh the server-rendered
-        // UI. We intentionally keep the UI simple by reloading so list queries
-        // executed server-side remain authoritative about what to display.
+        // Successful verify: update local state and refresh the server-rendered UI
         setVerified(true);
         setShowForm(false);
         window.location.reload();
@@ -248,16 +175,10 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
     }
 
 
-  // Perform a POST to the explicit reauth endpoint. Implementation notes:
-  // - The `/api/auth/reauth` route validates credentials and, on success,
-  //   updates the employee's `lastReauthAt` on the server. The server returns
-  //   that timestamp and the configured `reauthWindowSeconds` so the client
-  //   can show a helpful countdown.
-  // - We never store or log raw credentials in the audit; only a minimal
-  //   `reauth_success` or `reauth_failure` audit entry is written server-side.
-  // - The helper here only requests reauth; it does NOT perform the verify
-  //   operation itself. After a successful reauth we open the SWIFT confirm
-  //   modal and the operator submits the `confirmSwift` value separately.
+  // Perform a POST to the explicit reauth endpoint.
+  // reauth checks credentials and updates lastReauthAt, returning the timestamp and reauthWindowSeconds for a countdown.
+  // Only reauth_success or reauth_failure are logged—no raw credentials stored.
+  //This helper only triggers reauth
   setReauthLoading(true);
     try {
   const payload = { paymentId, reauthPassword };
@@ -277,9 +198,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
       if (!res.ok) {
         setReauthError(data?.error || 'Re-authentication failed');
         } else {
-        // Successful reauth: server returns lastReauthAt and window seconds.
-        // Emit a global event so header and other components update without
-        // a full page reload.
+        // Successful reauth: server returns lastReauthAt and window.
         try {
           const payload = { lastReauthAt: data?.lastReauthAt || new Date().toISOString(), reauthWindowSeconds: Number(data?.reauthWindowSeconds || process.env.REAUTH_WINDOW_SECONDS || 300) };
           window.dispatchEvent(new CustomEvent('reauth-success', { detail: payload }));
@@ -299,9 +218,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
 
   // Close and reset reauth dialog
   function handleReauthCancel() {
-    // Reset local re-auth state when the operator cancels so the UI is
-    // returned to a clean state. We intentionally do not alter any server
-    // side state here; canceling simply abandons the attempt.
+    // Reset local re-auth state when the operator cancels so the UI is returned to a clean state
     setShowReauth(false);
     setReauthError(null);
     setReauthPassword('');
@@ -316,15 +233,9 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
 
   return (
     <div>
-      {/* Per-row reauth indicators have been intentionally removed. The
-          global reauth countdown is shown only in the page header to
-          avoid duplicate timers and reduce visual noise in the payment
-          table. */}
+      {/*The reauth countdown is shown only in the page header to avoid duplicate timers */}
       {/* Visible cue for operators when step-up re-auth is required. This
-          shows a small badge and an explicit "Re-authenticate" button so
-          the operator can proactively perform the credential step before
-          opening the SWIFT confirmation. This improves discoverability
-          compared with relying solely on the SWIFT modal's warning. */}
+          shows a small badge and an explicit "Re-authenticate" button*/}
       {needsReauth && !reauthDone && (
         <div className="flex items-center gap-2 mb-2">
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -386,7 +297,7 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
               maxLength={6}
             />
 
-            {/* Payment ID confirmation removed — paymentId is optional for reauth */}
+            {}
 
             {reauthError && <p className="mt-2 text-sm text-rose-600">{reauthError}</p>}
 
@@ -436,20 +347,14 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
               maxLength={11}
             />
 
-            {/* Keep the expected SWIFT code visible (muted) so the operator can
-                see the target value while typing. The placeholder disappears
-                when typing; this persistent hint prevents that usability issue. */}
+            {/* Made the SWIFT code visible so the operator can see the target value while typing */}
             {swiftCode && (
               <div className="mt-2 text-sm text-gray-400 break-words">
                 Expected SWIFT: <span className="font-mono text-gray-500">{swiftCode}</span>
               </div>
             )}
 
-            {/* In the two-step flow, we perform re-authentication first. If
-                `reauthDone` is false and `needsReauth` is true, the
-                re-auth modal will have been shown already; the SWIFT
-                confirmation here is purely the human check and does not
-                collect the password. */}
+            {}
             {needsReauth && !reauthDone && (
               <p className="mt-4 text-sm text-yellow-700">You must re-authenticate first; please click "Verify" to open the re-auth dialog.</p>
             )}
@@ -467,11 +372,9 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
               </button>
               <button
                 type="submit"
-                // The submit button is enabled only when not loading and when
-                // either step-up auth is not required or the operator has
-                // completed the separate re-auth step (`reauthDone`). This
-                // prevents credentials from being mixed into the SWIFT form
-                // and enforces the two-step UX.
+                // The submit button is enabled only when not loading and when either step-up auth is not required or the operator has
+                // completed the separate re-auth step. 
+                // This prevents credentials from being mixed into the SWIFT form
                 disabled={loading || (needsReauth && !reauthDone)}
                 className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
               >
@@ -484,8 +387,6 @@ export default function VerifyPaymentButton({ paymentId, csrfToken, swiftCode, a
     </div>
   );
 }
-
-// Accessibility: trap focus inside the modal and allow Escape to close.
 // We attach listeners only when the modal is shown to avoid global side effects.
 function useModalA11y(modalRef, isOpen, onClose) {
   useEffect(() => {
@@ -521,7 +422,3 @@ function useModalA11y(modalRef, isOpen, onClose) {
     return () => document.removeEventListener('keydown', onKey);
   }, [modalRef, isOpen, onClose]);
 }
-// Note: The modal accessibility helper above is intentionally small and
-// dependency-free. It covers the common cases (focus trap and Escape to
-// close). For production-grade accessibility and edge-case handling you
-// may prefer a well-tested library such as `focus-trap-react`.

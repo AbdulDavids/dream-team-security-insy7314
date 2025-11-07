@@ -42,10 +42,7 @@ export default function ReauthButton({ csrfToken, lastReauthAt = null, reauthWin
   }, [open]);
 
   // Initialize done flag from server-provided lastReauthAt/window. We
-  // intentionally do not create a local timer here — the header
-  // `ReauthCountdown` component owns the live timer. This component will
-  // listen for 'reauth-success' and 'reauth-expired' events to update
-  // its `done` state without an additional interval.
+  // This component will listen for 'reauth-success' and 'reauth-expired' events to update
   useEffect(() => {
     try {
       if (lastReauthAt && reauthWindowSeconds) {
@@ -58,8 +55,7 @@ export default function ReauthButton({ csrfToken, lastReauthAt = null, reauthWin
     }
   }, [lastReauthAt, reauthWindowSeconds]);
 
-  // Listen for global reauth events so we can toggle the button visibility
-  // without setting intervals here.
+  // Listen for global reauth events so we can toggle the button visibility  without setting intervals here.
   useEffect(() => {
     function onSuccess(e) {
       setDone(true);
@@ -98,9 +94,7 @@ export default function ReauthButton({ csrfToken, lastReauthAt = null, reauthWin
         const last = data?.lastReauthAt ? new Date(data.lastReauthAt).getTime() : Date.now();
         const windowSec = Number(data?.reauthWindowSeconds || 300);
         setDone(true);
-        // Notify other UI components that a reauth just occurred so they
-        // can update without a full reload. Use server-provided values when
-        // available (data.lastReauthAt, windowSec).
+        // Notify other UI components that a reauth just occurred (for countdowns, etc)
         try {
           const ev = new CustomEvent('reauth-success', { detail: { lastReauthAt: data?.lastReauthAt || new Date(last).toISOString(), reauthWindowSeconds: windowSec } });
           window.dispatchEvent(ev);

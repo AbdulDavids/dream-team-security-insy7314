@@ -45,10 +45,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
     }
 
-  // Read JSON body. We accept an optional `confirmSwift` field from the
-  // client which allows the employee to enter the recipient's SWIFT code
-  // as an additional verification step. If provided the server will
-  // compare it to the stored `payment.swiftCode` (case-insensitive).
+  // Read JSON body and provides the SWIFT confirmation if given
   const body = await request.json().catch(() => null);
   const { paymentId, confirmSwift } = body || {};
 
@@ -68,25 +65,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Payment is not pending' }, { status: 409 });
     }
 
-    // Step-up authentication for high-value payments. Centralize the
-    // logic in requireReauthIfNeeded which supports password + optional
-    // TOTP verification and failure counting.
+    // Step-up authentication for high-value payments.
+    // requireReauthIfNeeded supports password + optionalTOTP verification and failure counting.
     try {
-      // Central re-auth: validates password and optional TOTP when required.
+      // validates password and optional TOTP when required.
       // The helper will throw an Error with `.status` set for common failure
-      // cases (401 for bad creds, 429 for too many failures, etc.).
   const { reauthPassword, totpCode } = body || {};
   await requireReauthIfNeeded({ sessionUser: session.user, amount: payment.amount, reauthPassword, totpCode });
 
-      // Record a re-auth success audit entry. We write this audit before
-      // performing the business operation so there's a clear trace that the
-      // employee re-authenticated for this payment.
+      // Record a re-auth success audit entry.
       try {
-        // Create a minimal reauth success audit record. We intentionally
-        // avoid storing sensitive values (passwords or TOTP codes). The
-        // audit includes the employee identifier, the paymentId context,
-        // and metadata indicating whether a TOTP was provided. This gives
-        // operators a traceable event without exposing secrets.
+        // intentionally avoid storing sensitive values (passwords or TOTP codes)
         const reauthAudit = await Audit.create({
           employeeId: session.user.userId,
           employeeIdentifier: session.user.userName || null,
@@ -94,17 +83,15 @@ export async function POST(request) {
           paymentId: payment.paymentId,
           details: { method: reauthPassword ? 'password' : 'recent-window', totpProvided: Boolean(totpCode) }
         });
-        // Export to the append-only audit sink (best-effort). Audit sink
-        // failures are logged but do not block the user operation.
+        // Export to the append-only audit sink (best-effort).
+        //  Audit sink failures are logged but do not block the user operation.
         sinkAudit(reauthAudit).catch(() => {});
       } catch (auditErr) {
-        // Log audit write failures for monitoring/alerting, but do not
-        // prevent the business operation from continuing.
+        // Log audit write failures for monitoring/alerting.
         console.error('Failed to write reauth success audit:', auditErr);
       }
     } catch (reauthErr) {
-      // On failure, create a reauth_failure audit so operations teams can
-      // investigate repeated or suspicious failed attempts.
+      // On failure, create a reauth_failure audit.
       try {
         const failAudit = await Audit.create({
           employeeId: session.user.userId,
@@ -118,15 +105,13 @@ export async function POST(request) {
         console.error('Failed to write reauth failure audit:', auditErr);
       }
 
-      // Surface a friendly error message to the client while keeping HTTP
-      // status codes meaningful for monitoring/automation.
+      // Surface a friendly error message to the client 
       return NextResponse.json({ error: reauthErr.message || 'Re-authentication required' }, { status: reauthErr.status || 401 });
     }
 
   // If the client supplied a SWIFT confirmation value, require it to match
     // the payment's stored swift code to add an extra verification step.
-    // This protects against an employee mistakenly verifying the wrong
-    // beneficiary by making them explicitly confirm a short secret (SWIFT).
+    // This protects against an employee mistakenly verifying the wrong beneficiary.
     let swiftMatch = true;
     if (typeof confirmSwift === 'string') {
       swiftMatch = confirmSwift.trim().toUpperCase() === (payment.swiftCode || '').toUpperCase();
@@ -150,9 +135,8 @@ export async function POST(request) {
       console.error('Session rotation failed after verify:', e);
     }
 
-    // Record audit log for verification. Auditing is important for
-    // accountability and compliance. We write a concise entry describing
-    // the employee, the action and whether the optional SWIFT check matched.
+    // Record audit log for verification.
+    // We write a concise entry describing the employee, the action and whether the optional SWIFT check matched.
     // The audit intentionally contains minimal metadata (no secrets).
     try {
       await dbConnect();
@@ -163,14 +147,12 @@ export async function POST(request) {
         paymentId: payment.paymentId,
         details: { swiftMatch }
       });
-      // Non-blocking export to append-only audit sink (signed JSONL). The
-      // sink is best-effort; failures are logged for alerting but do not
-      // cause the verification to fail.
+      // Non-blocking export to append-only audit sink (signed JSONL).
+      // The sink is best-effort; failures are logged for alerting.
       sinkAudit(created).catch(() => {});
     } catch (auditErr) {
-      // Log failures but don't block the main operation; audits are
-      // important but should not prevent business-critical flows from
-      // completing. Monitoring should alert on repeated failures.
+      // Log failures.
+      // Monitoring should alert on repeated failures.
       console.error('Audit log error (verify):', auditErr);
     }
 

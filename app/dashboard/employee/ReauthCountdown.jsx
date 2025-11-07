@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 
 // Small client component that shows a persistent re-auth countdown badge.
-// Props:
 // - lastReauthAt: ISO string or timestamp when the server recorded last reauth
 // - reauthWindowSeconds: number of seconds the reauth remains valid
 export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 300 }) {
@@ -37,8 +36,7 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
       }
     }
     window.addEventListener('reauth-success', onReauth);
-    // Also listen for explicit expiry (e.g., user logged out) so we can
-    // immediately clear the timer and remove display.
+    // Listen for explicit expiry immediately clear the timer and remove display.
     function onExpired() {
       setExpiry(null);
       setRemaining('');
@@ -50,9 +48,7 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
     };
   }, []);
 
-  // If reauth-expired is fired from somewhere else (e.g., logout) ensure
-  // we clear expiry immediately. This separate effect gives another layer
-  // of robustness across different browsers/navigation scenarios.
+  //This separate effect gives another layerof robustness.
   useEffect(() => {
     function onExpiredGlobal() {
       setExpiry(null);
@@ -63,7 +59,6 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
   }, []);
 
   // Listen for global reauth events so the header countdown updates
-  // immediately after a reauth without requiring a full page reload.
   useEffect(() => {
     function onReauth(e) {
       try {
@@ -85,15 +80,12 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
     if (!expiry) return;
     function update() {
       const now = Date.now();
-      // If a global flag was set (e.g., logout) ensure we clear the expiry
-      // immediately. This guards against rare timing windows where a
-      // dispatched event might be missed during navigation.
+      // If a global flag was set (e.g., logout) clears the expiry immediately
       try {
         if (window && window.__reauthExpired) {
           setExpiry(null);
           setRemaining('');
-          // keep the flag available for other listeners, but it's safe to
-          // delete here to avoid persistent state across pages
+          // keep the flag available for other listeners
           try { delete window.__reauthExpired; } catch (e) {}
           return;
         }
@@ -107,7 +99,7 @@ export default function ReauthCountdown({ lastReauthAt, reauthWindowSeconds = 30
         try {
           window.dispatchEvent(new CustomEvent('reauth-expired'));
         } catch (e) {
-          // ignore
+            // ignore
         }
         setExpiry(null);
         setRemaining('');
