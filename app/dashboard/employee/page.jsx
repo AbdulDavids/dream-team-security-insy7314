@@ -303,32 +303,32 @@ export default async function EmployeeDashboard() {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{p.swiftCode || '-'}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(p.createdAt).toLocaleString()}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center gap-2">
-                                                                                                                {/* Render Verify only for pending payments. For already-
-                                                                                                                        verified items we show a static label so the Verify
-                                                                                                                        button does not reappear after the employee verifies. */}
-                                                                                                                                                                        {p.status === 'pending' ? (
-                                                                                                                    <VerifyPaymentButton
-                                                                                                                        paymentId={p.paymentId}
-                                                                                                                        csrfToken={csrfToken}
-                                                                                                                        swiftCode={p.swiftCode}
-                                                                                                                        amount={p.amount}
-                                                                                                                        needsReauth={p.amount >= STEP_UP_THRESHOLD}
-                                                                                                                        lastReauthAt={lastReauthAt}
-                                                                                                                        reauthWindowSeconds={reauthWindowSeconds}
-                                                                                                                    />
-                                                                                                                ) : (
-                                                                                                                    <span className="text-sm text-emerald-600">Verified</span>
-                                                                                                                )}
+                                                        {/* Render Verify only for pending payments. For already-
+                                                            verified items we show a static label so the Verify
+                                                            button does not reappear after the employee verifies. */}
+                                                        {p.status === 'pending' ? (
+                                                            <VerifyPaymentButton
+                                                                paymentId={p.paymentId}
+                                                                csrfToken={csrfToken}
+                                                                swiftCode={p.swiftCode}
+                                                                amount={p.amount}
+                                                                needsReauth={p.amount >= STEP_UP_THRESHOLD}
+                                                                lastReauthAt={lastReauthAt}
+                                                                reauthWindowSeconds={reauthWindowSeconds}
+                                                            />
+                                                        ) : (
+                                                            <span className="text-sm text-emerald-600">Verified</span>
+                                                        )}
 
-                                                                                                                {/* Only show the Send button when the payment is VERIFIED.
-                                                                                                                        This keeps the UI consistent and prevents the operator
-                                                                                                                        from attempting a send before verification. The server
-                                                                                                                        still enforces this invariant as well. */}
-                                                                                                                {p.status === 'verified' ? (
-                                                                                                                    <SendToSwiftButton paymentId={p.paymentId} csrfToken={csrfToken} amount={p.amount} needsReauth={p.amount >= STEP_UP_THRESHOLD} />
-                                                                                                                ) : (
-                                                                                                                    <button disabled className="ml-2 inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-gray-300">Awaiting verification</button>
-                                                                                                                )}
+                                                        {/* Only show the Send button when the payment is VERIFIED.
+                                                            This keeps the UI consistent and prevents the operator
+                                                            from attempting a send before verification. The server
+                                                            still enforces this invariant as well. */}
+                                                        {p.status === 'verified' ? (
+                                                            <SendToSwiftButton paymentId={p.paymentId} csrfToken={csrfToken} amount={p.amount} needsReauth={p.amount >= STEP_UP_THRESHOLD} />
+                                                        ) : (
+                                                            <button disabled className="ml-2 inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-gray-300">Awaiting verification</button>
+                                                        )}
                                                         
                                                     </td>
                                                 </tr>
